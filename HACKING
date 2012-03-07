@@ -1,0 +1,2 @@
+If you add methods to the server that you want called from the client, export
+them by with the @exported decorator. The same goes for subclasses.
