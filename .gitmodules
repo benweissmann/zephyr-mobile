@@ -1,0 +1,3 @@
+[submodule "python-zephyr"]
+	path = python-zephyr
+	url = https://github.com/ebroder/python-zephyr.git
