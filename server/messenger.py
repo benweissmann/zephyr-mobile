@@ -248,9 +248,15 @@ class Messenger(object):
         
 
     @exported
-    def getClasses(self, unread=True):
+    def getClasses(self):
         """ List the classes with messages. """
-        return self.messages._cls.keys()
+        return [(cls, [len(self.messages(cls=cls, read=False)), len(self.messages(cls=cls, read=False))]) for cls in self.messages["cls"]]
+
+    @exported
+    def getUnreadClasses(self):
+        """ List the classes with messages. """
+        #XXX: TODO
+        raise NotImplementedError("TODO")
 
     @exported
     def getInstances(self, cls):
@@ -265,6 +271,7 @@ class Messenger(object):
 
         return insts.items()
 
+    @exported
     def getUnreadInstances(self, cls):
         """ List the instances with unread messages in a given class.
 
