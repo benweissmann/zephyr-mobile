@@ -6,9 +6,7 @@ from . import return_status, exported
 import time
 import settings
 from PyDbLite import Base
-import bisect
 import os
-from itertools import islice
 
 
 def make_message(sender, message, cls=None, instance=None, user=None):
@@ -50,11 +48,10 @@ class Filter(object):
     A filter that is an or of its clauses anded with its parent (recursivly).
     """
 
-    def __init__(self, f, parent=None):
+    def __init__(self, messageFilter, messages):
         """Initialize a new Filter
         Arguments:
-            f - A list of ORs
-            parent - the parent to and this filter with
+            f - a filter {"field": "value", ... }
         Filter clause:
             {
                 field: field-name,
@@ -62,42 +59,32 @@ class Filter(object):
                 value: search-value,
             }
         """
-        self.f = frozenset(tuple(fi) for fi in f)
-        self.fid = hash((parent.fid if parent is not None else hash(None), self.f)) # Creates a unique ordering but I am lazy
-        self.parent = parent
+        self.messageFilter = messageFilter
+        self.fid = id(self)
+        self.messages = messages
+        self.timestamp = time.time()
 
     def __hash__(self):
         return self.fid
-    
-    def getMatchedIDs(self, messages, start=0, end=float("inf")):
-        if self.parent:
-            ids = self.parent.getMatchedIDs(messages, start, end)
-            if len(ids) == 0:
-                return ids
-            new_ids = []
-            for field, regex, value in self.f:
-                if regex:
-                    raise NotImplementedError()
-                if value not in messages.indices[field]:
-                    continue
-            new_ids.extend(m for m in messages.indices[field][value] if m in ids)
-            return new_ids
+
+    def get(self, offset=0, perpage=None):
+        if perpage is None:
+            return self.messages[offset:]
         else:
-            new_ids = []
-            for field, regex, value in self.f:
-                if regex:
-                    raise NotImplementedError()
-                if value not in messages.indices[field]:
-                    continue
-                cur_ids = messages.indices[field][value]
+            return self.messages[offset:offset+perpage]
 
-                new_ids.extend(islice(
-                    cur_ids,
-                    bisect.bisect_left(cur_ids, start) if start else 0,
-                    bisect.bisect_left(cur_ids, end) if end is not float("inf") else None
-                ))
+    def filterResponse(self, offset=0, perpage=None):
+        return {
+            "filter": str(self.fid),
+            "messages": self.get(offset, perpage),
+            "count": len(self),
+            "perpage": perpage,
+            "offset": offset,
+            "timestamp": self.timestamp,
+        }
 
-            return new_ids
+    def __len__(self):
+        return len(self.messages)
 
 class Messenger(object):
     def __init__(self, submanager, username):
@@ -131,55 +118,38 @@ class Messenger(object):
             self.messages.commit()
 
     @exported
-    def filterMessages(self, messageFilters, parent_fid=None):
+    def filterMessages(self, messageFilter):
         """
         Filters messages.
         Arguments:
-            messageFilters - a list of filters
+            messageFilter - a filter in the form of {"field": "value"}
             parent_fid - the parent filters filter id
 
         Returns:
-            fid - a string filterID
+            (fid, count) where fid is a string filterID and count is the number
+            of matched messages.
 
-        filter:
-            A list of ORd queries in the form of.
-            Query: (String(field), Bool(value_is_regex), value)
-            Filter: [QueryA, QueryB, QueryC] == QueryA v QueryB v QueryC
-
-        # Matches all unread messages in either the message or help class.
-        >>> fid = messenger.filterMessages([[("cls", False, "message"), ("cls", False, "help")], [("read", False, False)]])
+        # Matches all unread messages in class help.
+        >>> fid = messenger.filterMessages({"cls": "help", "read": False})
         # Get the messages that match the filter
         >>> messenger.get(fid)
-
-        # Equivalent filter
-        >>> fidA = messenger.filterMessages([[("cls", False, "message"), ("cls", False, "help")]])
-        >>> fidB = messenger.filterMessages([[("read", False, False)]], fidA)
-        >>> messenger.get(fid)
         """
-        f = self.filters[int(parent_fid)] if parent_fid is not None else None
-        for messageFilter in messageFilters:
-            f = Filter(messageFilter, f)
-            # Store intermediate filters.
-            if f.fid in self.filters:
-                f = self.filters[f.fid]
-            else:
-                self.filters[f.fid] = f
-
-        return str(f.fid)
+        f = Filter(messageFilter, sorted(self.messages(**messageFilter), key=lambda x: x["timestamp"]))
+        self.filters[f.fid] = f
+        return (str(f.fid), len(f))
 
     @exported
-    def get(self, fid=None, start=0, end=float("inf")):
+    def get(self, fid, offset=0, perpage=None):
         """
         Get the messages that match fid.
         Arguments:
-            fid - the filter's ID
-            start - the id of the first message (inclusive)
-            end - the id of the last message (*EXCLUSIVE*)
+            fid     - the filter's ID
+            offset  - the first item to return from the matched messages.
+                      A negitive offset will index backwards.
+            perpage - The maximum number of of results to return.
         
-        returns a time sorted list of message dictionaries
-        Message format:
-
-        >>> {
+        # Message Format
+        >>> message = {
         >>>     "__id__": int,      # this is the id of the message
         >>>     "__version__": int, # this is updated every time the message is changed (marked etc.)
         >>>     "cls": str,
@@ -189,50 +159,69 @@ class Messenger(object):
         >>>     "sender": str       # the sender
         >>> }
 
+        # Returns:
+        >>> return_value = {
+        >>>     "filter": int,      # The filter used to generate the result.
+        >>>     "offset": int,      # The offset of the first result returned.
+        >>>     "perpage": int,     # The number of results requested.
+        >>>     "count": int,       # The total number of results found.
+        >>>     "messages": list    # A list of message dictionaries.
+        >>> }
+
+
         """
-        return sorted((self.messages[i] for i in self.applyFilter(fid, start, end)), key=lambda x: x["timestamp"])
+        return self.filters[int(fid)].filterResponse(offset, perpage)
+
 
     @exported
-    def hasNew(self, last, fid=None):
-        """ Returns true if there is a new message that matches the given filter. """
-        # XXX: This should be faster.
-        if fid is None:
+    def hasNew(self, last, messageFilter=None):
+        """
+        Returns True if there is a message that matches messageFilter newer
+        than last.
+        """
+        if messageFilter is None:
             return self.messages.next_id - 1 > last
         else:
-            for i in self.applyFilter(fid=fid, start=last):
+            for i in self.messages(**messageFilter):
                 if i > last:
                     return True
             return False
 
     @exported
-    def markFilter(self, status, fid=None, start=0, end=float("inf")):
-        """ Mark all of the messages that match a filter with the given status. """
-        return self.mark(status, self.applyFilter(fid, start, end))
-
-    @exported
     def delete(self, ids):
-        """ Delete the messages with th given ids. """
-        self.messages.delete(self.messages[i] for i in ids)
+        """
+        Deletes the given messages.
+        Returns the number deleted.
+        """
+        return self._deleteMessages(self.messages[i] for i in ids)
+
+    @exported
+    def deleteFilter(self, fid=None, offset=0, perpage=None):
+        """
+        Delete the messages that match the given filter.
+        Returns the number deleted.
+        """
+        return self._deleteMessages(self.filters[int(fid)].get(offset, perpage))
+
+    def _deleteMessages(self, messages):
+        count = self.messages.delete(messages)
         self.messages.commit()
+        return count
 
-    def applyFilter(self, fid=None, start=0, end=float("inf")):
-        if fid is None:
-            return (i for i in self.messages.records.iterkeys() if start <= i < end)
-        else:
-            return self.filters[int(fid)].getMatchedIDs(self.messages, start, end)
+    @exported
+    @return_status
+    def markFilter(self, status, fid=None, offset=0, perpage=None):
+        """ Mark all of the messages that match a filter with the given status. """
+        self._markMessages(status, self.filters[int(fid)].get(offset, perpage))
 
 
     @exported
-    def deleteFilter(self, fid=None, start=0, end=float("inf")):
-        """ Delete the messages that match the given filter. """
-        return self.delete(self.applyFilter(fid, start, end))
-
-    @exported
-    #@return_status
+    @return_status
     def mark(self, status, ids):
         """ Mark the given messages as read. """
-        #raise NotImplementedError("This doesn't work for an unknown reason")
-        messages = (self.messages[i] for i in ids)
+        self._markMessages(self.messages[i] for i in ids)
+
+    def _markMessages(self, status, messages):
         if status == "read":
             self.messages.update(messages, read=True)
         elif status == "unread":
@@ -242,10 +231,9 @@ class Messenger(object):
         self.messages.commit()
 
     @exported
-    def getIDs(self, fid=None, start=0, end=float("inf")):
+    def getIDs(self, fid=None, offset=0, perpage=None):
         """ Get all of the message ids that match the given filter. """
-        return sorted(self.applyFilter(fid, start, end))
-        
+        return [m["__id__"] for m in self.filters[int(fid)].get(offset, perpage)]
 
     @exported
     def getClasses(self):
@@ -293,6 +281,5 @@ class Messenger(object):
         if fid is None:
             return len(self.messages)
         else:
-            return len(list(self.applyfilter(fid)))
-
+            return len(self.filters[int(fid)])
 
