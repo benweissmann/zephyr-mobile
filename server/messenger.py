@@ -242,8 +242,12 @@ class Messenger(object):
 
     @exported
     def getClasses(self):
-        """ List the classes with messages. """
-        return [(cls, [len(self.messages(cls=cls, read=False)), len(self.messages(cls=cls, read=False))]) for cls in self.messages["cls"]]
+        """
+        List the classes with messages.
+        Returns:
+            (class, [unread_count, read_count], ...)
+        """
+        return [(cls, [len(self.messages(cls=cls, read=False)), len(self.messages(cls=cls, read=True))]) for cls in self.messages._cls.keys()]
 
     @exported
     def getUnreadClasses(self):
