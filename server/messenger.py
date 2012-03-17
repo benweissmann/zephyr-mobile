@@ -93,6 +93,12 @@ class Messenger(object):
         self.username = username
         self.filters = {}
 
+    def _store_message(self, message):
+        """ Stores a message and returns its ID. """
+        ret = self.messages.insert(**message)
+        self.messages.commit()
+        return ret
+
     @exported
     @return_status
     def send(self, message, cls=None, instance=None, user=None):
@@ -114,8 +120,7 @@ class Messenger(object):
         """
 
         if self.submanager.matchTripplet(cls, instance, user):
-            self.messages.insert(**make_message(self.username, message, cls, instance, user))
-            self.messages.commit()
+            self._store_message(make_message(self.username, message, cls, instance, user))
 
     @exported
     def filterMessages(self, messageFilter):
