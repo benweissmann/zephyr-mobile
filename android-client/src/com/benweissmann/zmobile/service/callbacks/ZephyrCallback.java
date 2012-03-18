@@ -1,7 +1,7 @@
 package com.benweissmann.zmobile.service.callbacks;
 
-public interface StringCallback {
-    public void run(String s);
+public interface ZephyrCallback<T> {
+    public void run(T s);
     
     public void onError(Throwable e);
 }

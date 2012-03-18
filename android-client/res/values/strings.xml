@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="hello">Hello World, ZephyrMobileClientActivity!</string>
+    <string name="hello">Hello World, ZephyrMobileClientActivity!\n</string>
     <string name="app_name">ZephyrMobileClient</string>
+    <string name="more_zephyrs">More</string>
     <item type="id" name="test_notification" />
 
 </resources>

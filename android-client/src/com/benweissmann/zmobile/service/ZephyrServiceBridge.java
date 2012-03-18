@@ -78,6 +78,7 @@ public class ZephyrServiceBridge {
         // if we already have a living binder, just send back that
         if ((this.binder != null) && this.binder.isBinderAlive()) {
             callback.run(this.binder);
+            return;
         }
 
         // ensure service is running

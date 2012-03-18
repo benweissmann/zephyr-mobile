@@ -1,3 +1,6 @@
 [submodule "python-zephyr"]
 	path = python-zephyr
 	url = https://github.com/ebroder/python-zephyr.git
+[submodule "android-client/aXMLRPC"]
+	path = android-client/aXMLRPC
+	url = https://github.com/timroes/aXMLRPC.git
