@@ -23,9 +23,7 @@ def transaction(func):
             raise e
     return do
 
-        
-
-def open_or_create_db():
+def open_or_create_db(path):
     """
     Either open an existing db or create a new one.
 
@@ -33,9 +31,11 @@ def open_or_create_db():
         path -  the path to the database. the database does not need to exist
                 but the parent directory must.
     """
-    if not os.path.isdir(settings.DATA_DIR):
-        os.makedirs(settings.DATA_DIR)
-    db = sqlite3.connect(settings.ZEPHYR_DB, detect_types=sqlite3.PARSE_DECLTYPES)
+    if path != ":memory:":
+        directory = os.path.dirname(path)
+        if not os.path.isdir(directory):
+            os.makedirs(directory)
+    db = sqlite3.connect(path, detect_types=sqlite3.PARSE_DECLTYPES)
     db.row_factory = lambda cursor, row: dict(izip((c[0] for c in cursor.description), row))
     db.execute("""CREATE TABLE IF NOT EXISTS messages (
         id          INTEGER NOT NULL PRIMARY KEY,
@@ -49,7 +49,6 @@ def open_or_create_db():
     )""")
     db.commit()
     return db
-
 
 class Filter(object):
     """
@@ -124,11 +123,9 @@ class Filter(object):
             "offset": offset,
         }
 
-
 class Messenger(object):
-    def __init__(self, submanager, username):
-        self.submanager = submanager # XXX: Needed for now (not later).
-        self.db = open_or_create_db()
+    def __init__(self, username, db_path = settings.ZEPHYR_DB):
+        self.db = open_or_create_db(db_path)
         self.username = username
         self.filters = {}
 
@@ -160,8 +157,7 @@ class Messenger(object):
         >>> messenger.send("This is a really short message.", "message", "personal", "bsw")
         """
 
-        if self.submanager.matchTripplet(cls, instance, user):
-            self.store_messages((self.username, message, cls, instance, user))
+        self.store_messages((self.username, message, cls, instance, user))
 
     @exported
     def filterMessages(self, messageFilter):
