@@ -3,22 +3,27 @@
 import logging
 logging.basicConfig(level=logging.DEBUG)
 from . import return_status, exported
-import time
 import settings
-from PyDbLite import Base
+import sqlite3
 import os
+from itertools import izip
+from functools import wraps
+sqlite3.register_converter("BOOL", lambda v: v != "0")
 
+def transaction(func):
+    @wraps(func)
+    def do(self, *args, **kwargs):
+        try:
+            self.db.commit()
+            r = func(self, *args, **kwargs)
+            self.db.commit()
+            return r
+        except BaseException as e:
+            self.db.rollback()
+            raise e
+    return do
 
-def make_message(sender, message, cls=None, instance=None, user=None):
-    return {
-        "sender": sender,
-        "message": message,
-        "timestamp": time.time(),
-        "read": False,
-        "cls": cls or "message",
-        "instance": instance or "personal",
-        "user": user
-    }
+        
 
 def open_or_create_db():
     """
@@ -28,27 +33,30 @@ def open_or_create_db():
         path -  the path to the database. the database does not need to exist
                 but the parent directory must.
     """
-    db = Base(settings.ZEPHYR_DB)
-    try:
-        db.open()
-    except IOError:
-        if not os.path.isdir(settings.DATA_DIR):
-            os.makedirs(settings.DATA_DIR)
-        db.create("sender", "message", "timestamp", "read", "cls", "instance", "user")
-        db.create_index("sender")
-        db.create_index("cls")
-        db.create_index("read")
-        db.create_index("instance")
-        db.create_index("user")
-        db.open()
+    if not os.path.isdir(settings.DATA_DIR):
+        os.makedirs(settings.DATA_DIR)
+    db = sqlite3.connect(settings.ZEPHYR_DB, detect_types=sqlite3.PARSE_DECLTYPES)
+    db.row_factory = lambda cursor, row: dict(izip((c[0] for c in cursor.description), row))
+    db.execute("""CREATE TABLE IF NOT EXISTS messages (
+        id          INTEGER NOT NULL PRIMARY KEY,
+        sender      TEXT    NOT NULL,
+        message     TEXT    NOT NULL,
+        read        BOOL    NOT NULL DEFAULT 0,
+        cls         TEXT    NOT NULL DEFAULT "message",
+        instance    TEXT    NOT NULL DEFAULT "personal",
+        user        TEXT    DEFAULT NULL,
+        timestamp   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )""")
+    db.commit()
     return db
+
 
 class Filter(object):
     """
     A filter that is an or of its clauses anded with its parent (recursivly).
     """
 
-    def __init__(self, messageFilter, messages):
+    def __init__(self, cls=None, instance=None, user=None, sender=None, read=None, message=None, after=None, before=None):
         """Initialize a new Filter
         Arguments:
             f - a filter {"field": "value", ... }
@@ -59,49 +67,82 @@ class Filter(object):
                 value: search-value,
             }
         """
-        self.messageFilter = messageFilter
-        self.fid = id(self)
-        self.messages = messages
-        self.timestamp = time.time()
+        f = tuple([ (i,s)  for i,s in (
+            (cls, "class=?"),
+            (instance, "instance=?"),
+            (user, "user=?"),
+            (sender, "sender=?"),
+            (int(read) if read is not None else None, "read=?"),
+            (("%" + message + "%") if message is not None else None, 'message LIKE ?'),
+            (after, "timestamp > ?"),
+            (before, "timestamp < ?"),
+        ) if i is not None])
+        self.fid = hash(f)
+
+
+        if f:
+            self._objs, query_list = zip(*f)
+            self._where = " WHERE " + " AND ".join(query_list)
+        else:
+            self._objs = ()
+            self._where = ""
 
     def __hash__(self):
         return self.fid
 
-    def get(self, offset=0, perpage=None):
-        if perpage is None:
-            return self.messages[offset:]
-        else:
-            return self.messages[offset:offset+perpage]
+    def applyQuery(self, db, action, offset=0, perpage=-1):
+        return db.execute(
+            "%s FROM messages %s ORDER BY timestamp LIMIT ? OFFSET ?" % (action, self._where),
+            self._objs + (perpage,offset)
+        )
 
-    def filterResponse(self, offset=0, perpage=None):
+    def get(self, db, offset=0, perpage=-1):
+        return self.applyQuery(db, "SELECT *", offset, perpage).fetchall()
+
+    def delete(self, db, offset=0, perpage=-1):
+        return self.applyQuery(db, "DELETE", offset, perpage).rowcount
+
+    def markRead(self, db, updates):
+        return db.execute("UPDATE messages SET read=1" + self._where, self._objs).rowcount
+
+    def markUnread(self, db, updates):
+        return db.execute("UPDATE messages SET read=0" + self._where, self._objs).rowcount
+
+    def count(self, db, offset=0, perpage=-1):
+        return self.applyQuery(db, "SELECT count(*) AS total FROM messages", offset, perpage).fetchone()["total"]
+
+    def getIDs(self, db, offset=0, perpage=-1):
+        return [i["id"] for i in self.applyQuery(db, "SELECT id FROM messages", offset, perpage)]
+
+
+    def filterResponse(self, db, offset=0, perpage=-1):
         return {
             "filter": str(self.fid),
-            "messages": self.get(offset, perpage),
-            "count": len(self),
+            "messages": self.get(db, offset, perpage),
+            "count": 0, #XXX: This should be set but ... evaluate early or late...
             "perpage": perpage,
             "offset": offset,
-            "timestamp": self.timestamp,
         }
 
-    def __len__(self):
-        return len(self.messages)
 
 class Messenger(object):
     def __init__(self, submanager, username):
         self.submanager = submanager # XXX: Needed for now (not later).
-        self.messages = open_or_create_db()
+        self.db = open_or_create_db()
         self.username = username
         self.filters = {}
 
-    def _store_message(self, message):
+    @transaction
+    def store_messages(self, *messages):
         """ Stores a message and returns its ID. """
-        ret = self.messages.insert(**message)
-        self.messages.commit()
-        return ret
+        return self.db.executemany(
+            'INSERT INTO messages(sender, message, cls, instance, user) VALUES (?, ?, ?, ?, ?)',
+            iter(messages)
+        )
 
     @exported
     @return_status
-    def send(self, message, cls=None, instance=None, user=None):
+    def send(self, message, cls="message", instance="personal", user=None):
         """
         Send a zephyr.
 
@@ -120,7 +161,7 @@ class Messenger(object):
         """
 
         if self.submanager.matchTripplet(cls, instance, user):
-            self._store_message(make_message(self.username, message, cls, instance, user))
+            self.store_messages((self.username, message, cls, instance, user))
 
     @exported
     def filterMessages(self, messageFilter):
@@ -128,7 +169,9 @@ class Messenger(object):
         Filters messages.
         Arguments:
             messageFilter - a filter in the form of {"field": "value"}
-            parent_fid - the parent filters filter id
+            Valid fields are:
+                sender, class, instance, user, message, before, after, read
+
 
         Returns:
             (fid, count) where fid is a string filterID and count is the number
@@ -139,12 +182,12 @@ class Messenger(object):
         # Get the messages that match the filter
         >>> messenger.get(fid)
         """
-        f = Filter(messageFilter, sorted(self.messages(**messageFilter), key=lambda x: x["timestamp"]))
+        f = Filter(**messageFilter)
         self.filters[f.fid] = f
-        return (str(f.fid), len(f))
+        return (str(f.fid), 0) # XXX: Should set actual length
 
     @exported
-    def get(self, fid, offset=0, perpage=None):
+    def get(self, fid, offset=0, perpage=-1):
         """
         Get the messages that match fid.
         Arguments:
@@ -175,7 +218,7 @@ class Messenger(object):
 
 
         """
-        return self.filters[int(fid)].filterResponse(offset, perpage)
+        return self.filters[int(fid)].filterResponse(self.db, offset, perpage)
 
 
     @exported
@@ -184,111 +227,152 @@ class Messenger(object):
         Returns True if there is a message that matches messageFilter newer
         than last.
         """
-        if messageFilter is None:
-            return self.messages.next_id - 1 > last
-        else:
-            for i in self.messages(**messageFilter):
-                if i > last:
-                    return True
-            return False
+        # XXX: SQLITE
+        return True
 
     @exported
+    @transaction
     def delete(self, ids):
         """
         Deletes the given messages.
         Returns the number deleted.
         """
-        return self._deleteMessages(self.messages[i] for i in ids)
+        return self.db.executemany("DELETE FROM messages WHERE id=?", ((i,) for i in ids)).rowcount
 
     @exported
-    def deleteFilter(self, fid=None, offset=0, perpage=None):
+    @transaction
+    def deleteFilter(self, fid, offset=0, perpage=-1):
         """
         Delete the messages that match the given filter.
         Returns the number deleted.
         """
-        return self._deleteMessages(self.filters[int(fid)].get(offset, perpage))
-
-    def _deleteMessages(self, messages):
-        count = self.messages.delete(messages)
-        self.messages.commit()
-        return count
+        return self.filters[int(fid)].delete(self.db, offset, perpage)
 
     @exported
-    @return_status
-    def markFilter(self, status, fid=None, offset=0, perpage=None):
+    def markFilter(self, status, fid, offset=0, perpage=-1):
+        if status == "read":
+            return self.markFilterRead(offset, perpage)
+        elif status == "unread":
+            return self.markFilterUnread(offset, perpage)
+
+    @exported
+    @transaction
+    def markFilterRead(self, fid):
         """ Mark all of the messages that match a filter with the given status. """
-        self._markMessages(status, self.filters[int(fid)].get(offset, perpage))
+        return self.filters[int(fid)].markRead(self.db)
+
+    @exported
+    @transaction
+    def markFilterUnread(self, fid):
+        """ Mark all of the messages that match a filter with the given status. """
+        return self.filters[int(fid)].markUnread(self.db)
 
 
     @exported
-    @return_status
     def mark(self, status, ids):
         """ Mark the given messages as read. """
-        self._markMessages(self.messages[i] for i in ids)
-
-    def _markMessages(self, status, messages):
         if status == "read":
-            self.messages.update(messages, read=True)
+            return self.markRead()
         elif status == "unread":
-            self.messages.update(messages, read=False)
-        else:
-            raise ValueError("Invalid status")
-        self.messages.commit()
+            return self.markUnread()
 
     @exported
-    def getIDs(self, fid=None, offset=0, perpage=None):
+    @transaction
+    def markRead(self, ids):
+        return self.db.executemany("UPDATE messages SET read=1 WHERE id=?", ((i,) for i in ids)).rowcount
+
+    @exported
+    @transaction
+    def markUnread(self, ids):
+        return self.db.executemany("UPDATE messages SET read=0 WHERE id=?", ((i,) for i in ids)).rowcount
+
+
+
+    @exported
+    @transaction
+    def getIDs(self, fid=None, offset=0, perpage=-1):
         """ Get all of the message ids that match the given filter. """
-        return [m["__id__"] for m in self.filters[int(fid)].get(offset, perpage)]
+        return self.filters[int(fid)].getIDs(self.db, offset, perpage)
 
     @exported
-    def getClasses(self):
-        """
-        List the classes with messages.
-        Returns:
-            (class, [unread_count, read_count], ...)
-        """
-        return [(cls, [len(self.messages(cls=cls, read=False)), len(self.messages(cls=cls, read=True))]) for cls in self.messages._cls.keys()]
-
-    @exported
-    def getUnreadClasses(self):
-        """ List the classes with messages. """
-        #XXX: TODO
-        raise NotImplementedError("TODO")
-
-    @exported
-    def getInstances(self, cls):
+    def getInstances(self, cls, offset=0, perpage=-1):
         """ List the instances with messages in a given class.
 
         returns:
             [("instance", [unread_count, read_count]), ...]
         """
-        insts = {}
-        for m in self.messages(cls=cls):
-            insts.setdefault(m["instance"], [])[int(m["read"])] += 1
-
-        return insts.items()
+        return [ (r["instance"], (r["unread"], r["read"])) for r in self.db.execute(
+            """
+            SELECT instance, COUNT(*) AS total, COUNT(unread) AS unread
+            FROM (SELECT instance, nullif(read, 1) AS unread, timestamp FROM messages)
+            WHERE cls=?
+            GROUP BY instance
+            ORDER BY MAX(timestamp)
+            LIMIT ? OFFSET ?
+            """, cls, perpage, offset) ]
 
     @exported
-    def getUnreadInstances(self, cls):
-        """ List the instances with unread messages in a given class.
+    def getUnreadInstances(self, cls, offset=0, perpage=-1):
+        """ List the instances with messages in a given class.
 
         returns:
-            [("instance", message_count), ...]
+            [("instance", [unread_count, read_count]), ...]
         """
-        insts = {}
-        for m in self.messages(cls=cls, read=False):
-            i = m["instance"]
-            if i not in insts:
-                insts[i] = 1
-            else:
-                insts[i] += 1
-        return insts.items()
+        return [ (r["instance"], (r["unread"], r["read"])) for r in self.db.execute(
+            """
+            SELECT instance, COUNT(*) AS total, COUNT(unread) AS unread
+            FROM (SELECT instance, nullif(read, 1) AS unread, timestamp FROM messages)
+            WHERE cls=? AND read=0
+            GROUP BY instance
+            ORDER BY MAX(timestamp)
+            LIMIT ? OFFSET ?
+            """, cls, perpage, offset) ]
+
+
+
+    @exported
+    def getClasses(self, offset=0, perpage=-1):
+        """
+        List the classes with messages.
+        Returns:
+            (class, [unread_count, read_count], ...)
+        """
+        return [ (r["class"], (r["unread"], r["read"])) for r in self.db.execute(
+            """
+            SELECT cls, COUNT(*) AS total, COUNT(unread) AS unread
+            FROM (SELECT cls, nullif(read, 1) AS unread, timestamp FROM messages)
+            GROUP BY cls
+            ORDER BY MAX(timestamp)
+            LIMIT ? OFFSET ?
+            """, perpage, offset) ]
+
+    @exported
+    def getUnreadClasses(self, offset=0, perpage=-1):
+        """
+        List the classes with messages.
+        Returns:
+            (class, [unread_count, read_count], ...)
+        """
+        return [ (r["class"], (r["unread"], r["read"])) for r in self.db.execute(
+            """
+            SELECT cls, COUNT(*) AS total, COUNT(unread) AS unread
+            FROM (SELECT cls, nullif(read, 1) AS unread, timestamp FROM messages)
+            WHERE read=0
+            GROUP BY cls
+            ORDER BY MAX(timestamp)
+            LIMIT ? OFFSET ?
+            """, perpage, offset) ]
+
 
     @exported
     def getCount(self, fid=None):
         """ Get the number of messages that match a filter. """
-        if fid is None:
-            return len(self.messages)
+        if fid is not None:
+            return self.filters[int(fid)].count()
         else:
-            return len(self.filters[int(fid)])
+            return self.db.execute("SELECT COUNT(*) AS total FROM messages").fetchone()["total"]
 
+if __name__ == '__main__':
+    from subscriptions import SubscriptionManager
+    m = Messenger(SubscriptionManager("ME"), "ME")
+    f, c = m.filterMessages()
