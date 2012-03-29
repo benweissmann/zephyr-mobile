@@ -130,7 +130,15 @@ class Messenger(object):
 
     @transaction
     def store_messages(self, *messages):
-        """ Stores a message and returns its ID. """
+        """ Stores a message and returns its ID.
+
+        >>> messenger = Messenger("ME", ":memory:")
+        >>> messenger.store_messages(
+        >>>     ("SENDER", "MESSAGE", "CLASS", "INSTANCE", "USER"),
+        >>>     ("SENDER", "MESSAGE2", "CLASS", "INSTANCE", "USER")
+        >>> )
+        """
+
         return self.db.executemany(
             'INSERT INTO messages(sender, message, cls, instance, user) VALUES (?, ?, ?, ?, ?)',
             iter(messages)
@@ -148,9 +156,9 @@ class Messenger(object):
             instance - the message instance (defaults to "personal")
             user - the destination user (None means everyone)
 
+        >>> messenger = Messenger("ME", ":memory:")
         # Send a message to -c help -i linux
         >>> messenger.send("This is a really short message.", "help", "linux")
-
         # Send a message to bsw (the two following are equivalent)
         >>> messenger.send("This is a really short message.", None, None, "bsw")
         >>> messenger.send("This is a really short message.", "message", "personal", "bsw")
@@ -188,12 +196,15 @@ class Messenger(object):
             fid     - the filter's ID
             offset  - the first item to return from the matched messages.
                       A negitive offset will index backwards.
-            perpage - The maximum number of of results to return.
+            perpage - The maximum number of of results to return. Passing a
+                      negative number returns all results.
         
-        # Message Format
+        >>> from . import subscriptions
+        >>> m = Messenger(subscriptions.SubscriptionManager("ME"), "ME")
+        >>> m.store_message(
         >>> message = {
-        >>>     "__id__": int,      # this is the id of the message
-        >>>     "__version__": int, # this is updated every time the message is changed (marked etc.)
+        >>>     "id": int,
+        >>>     "timestamp": int,
         >>>     "cls": str,
         >>>     "instance": str,
         >>>     "message": str,
