@@ -118,7 +118,6 @@ class Filter(object):
         return {
             "filter": str(self.fid),
             "messages": self.get(db, offset, perpage),
-            "count": 0, #XXX: This should be set but ... evaluate early or late...
             "perpage": perpage,
             "offset": offset,
         }
@@ -170,8 +169,7 @@ class Messenger(object):
 
 
         Returns:
-            (fid, count) where fid is a string filterID and count is the number
-            of matched messages.
+            fid - a string filterID and count.
 
         # Matches all unread messages in class help.
         >>> fid = messenger.filterMessages({"cls": "help", "read": False})
@@ -180,7 +178,7 @@ class Messenger(object):
         """
         f = Filter(**messageFilter)
         self.filters[f.fid] = f
-        return (str(f.fid), 0) # XXX: Should set actual length
+        return str(f.fid)
 
     @exported
     def get(self, fid, offset=0, perpage=-1):
@@ -208,7 +206,6 @@ class Messenger(object):
         >>>     "filter": int,      # The filter used to generate the result.
         >>>     "offset": int,      # The offset of the first result returned.
         >>>     "perpage": int,     # The number of results requested.
-        >>>     "count": int,       # The total number of results found.
         >>>     "messages": list    # A list of message dictionaries.
         >>> }
 
