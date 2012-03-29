@@ -299,34 +299,34 @@ class Messenger(object):
         """ List the instances with messages in a given class.
 
         returns:
-            [("instance", [unread_count, read_count]), ...]
+            [("instance", [unread_count, total_count]), ...]
         """
-        return [ (r["instance"], (r["unread"], r["read"])) for r in self.db.execute(
+        return [ (r["instance"], (r["unread"], r["total"])) for r in self.db.execute(
             """
             SELECT instance, COUNT(*) AS total, COUNT(unread) AS unread
-            FROM (SELECT instance, nullif(read, 1) AS unread, timestamp FROM messages)
+            FROM (SELECT cls, instance, nullif(read, 1) AS unread, timestamp FROM messages)
             WHERE cls=?
             GROUP BY instance
             ORDER BY MAX(timestamp)
             LIMIT ? OFFSET ?
-            """, cls, perpage, offset) ]
+            """, (cls, perpage, offset)) ]
 
     @exported
     def getUnreadInstances(self, cls, offset=0, perpage=-1):
         """ List the instances with messages in a given class.
 
         returns:
-            [("instance", [unread_count, read_count]), ...]
+            [("instance", [unread_count, total_count]), ...]
         """
-        return [ (r["instance"], (r["unread"], r["read"])) for r in self.db.execute(
+        return [ (r["instance"], (r["unread"], r["total"])) for r in self.db.execute(
             """
             SELECT instance, COUNT(*) AS total, COUNT(unread) AS unread
-            FROM (SELECT instance, nullif(read, 1) AS unread, timestamp FROM messages)
+            FROM (SELECT cls, instance, read, nullif(read, 1) AS unread, timestamp FROM messages)
             WHERE cls=? AND read=0
             GROUP BY instance
             ORDER BY MAX(timestamp)
             LIMIT ? OFFSET ?
-            """, cls, perpage, offset) ]
+            """, (cls, perpage, offset)) ]
 
 
 
@@ -335,33 +335,33 @@ class Messenger(object):
         """
         List the classes with messages.
         Returns:
-            (class, [unread_count, read_count], ...)
+            (class, [unread_count, total_count], ...)
         """
-        return [ (r["class"], (r["unread"], r["read"])) for r in self.db.execute(
+        return [ (r["cls"], (r["unread"], r["total"])) for r in self.db.execute(
             """
             SELECT cls, COUNT(*) AS total, COUNT(unread) AS unread
             FROM (SELECT cls, nullif(read, 1) AS unread, timestamp FROM messages)
             GROUP BY cls
             ORDER BY MAX(timestamp)
             LIMIT ? OFFSET ?
-            """, perpage, offset) ]
+            """, (perpage, offset)) ]
 
     @exported
     def getUnreadClasses(self, offset=0, perpage=-1):
         """
         List the classes with messages.
         Returns:
-            (class, [unread_count, read_count], ...)
+            (class, [unread_count, total_count], ...)
         """
-        return [ (r["class"], (r["unread"], r["read"])) for r in self.db.execute(
+        return [ (r["cls"], (r["unread"], r["total"])) for r in self.db.execute(
             """
             SELECT cls, COUNT(*) AS total, COUNT(unread) AS unread
-            FROM (SELECT cls, nullif(read, 1) AS unread, timestamp FROM messages)
+            FROM (SELECT cls, read, nullif(read, 1) AS unread, timestamp FROM messages)
             WHERE read=0
             GROUP BY cls
             ORDER BY MAX(timestamp)
             LIMIT ? OFFSET ?
-            """, perpage, offset) ]
+            """, (perpage, offset)) ]
 
 
     @exported
