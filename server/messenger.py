@@ -67,7 +67,7 @@ class Filter(object):
             }
         """
         f = tuple([ (i,s)  for i,s in (
-            (cls, "class=?"),
+            (cls, "cls=?"),
             (instance, "instance=?"),
             (user, "user=?"),
             (sender, "sender=?"),
