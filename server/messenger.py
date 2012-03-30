@@ -31,6 +31,7 @@ def open_or_create_db(path):
         path -  the path to the database. the database does not need to exist
                 but the parent directory must.
     """
+    print path
     if path != ":memory:":
         directory = os.path.dirname(path)
         if not os.path.isdir(directory):
@@ -91,7 +92,7 @@ class Filter(object):
 
     def applyQuery(self, db, action, offset=0, perpage=-1):
         return db.execute(
-            "%s FROM messages %s ORDER BY timestamp LIMIT ? OFFSET ?" % (action, self._where),
+            "%s FROM messages %s ORDER BY timestamp DESC LIMIT ? OFFSET ?" % (action, self._where),
             self._objs + (perpage,offset)
         )
 
@@ -311,7 +312,7 @@ class Messenger(object):
             FROM (SELECT cls, instance, nullif(read, 1) AS unread, timestamp FROM messages)
             WHERE cls=?
             GROUP BY instance
-            ORDER BY MAX(timestamp)
+            ORDER BY MAX(timestamp) DESC
             LIMIT ? OFFSET ?
             """, (cls, perpage, offset)) ]
 
@@ -328,7 +329,7 @@ class Messenger(object):
             FROM (SELECT cls, instance, read, nullif(read, 1) AS unread, timestamp FROM messages)
             WHERE cls=? AND read=0
             GROUP BY instance
-            ORDER BY MAX(timestamp)
+            ORDER BY MAX(timestamp) DESC
             LIMIT ? OFFSET ?
             """, (cls, perpage, offset)) ]
 
@@ -346,7 +347,7 @@ class Messenger(object):
             SELECT cls, COUNT(*) AS total, COUNT(unread) AS unread
             FROM (SELECT cls, nullif(read, 1) AS unread, timestamp FROM messages)
             GROUP BY cls
-            ORDER BY MAX(timestamp)
+            ORDER BY MAX(timestamp) DESC
             LIMIT ? OFFSET ?
             """, (perpage, offset)) ]
 
@@ -363,7 +364,7 @@ class Messenger(object):
             FROM (SELECT cls, read, nullif(read, 1) AS unread, timestamp FROM messages)
             WHERE read=0
             GROUP BY cls
-            ORDER BY MAX(timestamp)
+            ORDER BY MAX(timestamp) DESC
             LIMIT ? OFFSET ?
             """, (perpage, offset)) ]
 
