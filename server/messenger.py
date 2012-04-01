@@ -31,6 +31,7 @@ def open_or_create_db(path):
         path -  the path to the database. the database does not need to exist
                 but the parent directory must.
     """
+    print path
     if path != ":memory:":
         directory = os.path.dirname(path)
         if not os.path.isdir(directory):
@@ -80,9 +81,10 @@ class Filter(object):
 
 
         if f:
-            self._objs, query_list = zip(*f)
-            self._where = " WHERE " + " AND ".join(query_list)
+            self._objs, self._query_list = zip(*f)
+            self._where = " WHERE " + " AND ".join(self._query_list)
         else:
+            self._query_list = ()
             self._objs = ()
             self._where = ""
 
@@ -108,7 +110,54 @@ class Filter(object):
         return db.execute("UPDATE messages SET read=0" + self._where, self._objs).rowcount
 
     def count(self, db, offset=0, perpage=-1):
-        return self.applyQuery(db, "SELECT count(*) AS total FROM messages", offset, perpage).fetchone()["total"]
+        return self.applyQuery(db, "SELECT count(*) AS total", offset, perpage).fetchone()["total"]
+        
+    def counts(self, db):
+        """
+        Returns (unread_count, total_count)
+        """
+        query = """
+                SELECT count(*) AS total, count(unread) AS unread
+                FROM (
+                    SELECT nullif(read, 1) AS unread
+                    FROM messages
+                    %s
+                )
+                """ % (self._where)
+        result = db.execute(query, self._objs).fetchone()
+        return (result['unread'], result['total'])
+        
+    def oldestUnreadOffset(self, db):
+        """
+        selects the offset of the oldest unread zephyr using a query similar to
+        
+        SELECT count(*) AS offset
+        FROM  messages
+        WHERE col1=val1 AND col2=val2 AND timestamp < (
+            SELECT timestamp
+            FROM messages
+            WHERE col1=val1 AND col2=val2 AND read=0
+            ORDER BY timestamp
+            LIMIT 1
+        )
+        
+        If there are no unread messages, uses -1
+        
+        Returns (offset, total_count)
+        """
+        
+        unread, total = self.counts(db)
+        if unread == 0:
+            return (-1, total)
+    
+        subquery_where = " AND ".join(self._query_list + ("read=0",))
+        subquery = "SELECT timestamp FROM messages WHERE %s ORDER BY timestamp LIMIT 1" % (subquery_where)
+        query_where_addendum = "timestamp < (%s)" % (subquery)
+        query_where = " AND ".join(self._query_list + (query_where_addendum,))
+        query = "SELECT count(*) AS offset FROM messages WHERE %s" % (query_where)
+        print query
+        print self._objs*2
+        return (db.execute(query, self._objs*2).fetchone()["offset"], total)
 
     def getIDs(self, db, offset=0, perpage=-1):
         return [i["id"] for i in self.applyQuery(db, "SELECT id FROM messages", offset, perpage)]
@@ -311,7 +360,7 @@ class Messenger(object):
             FROM (SELECT cls, instance, nullif(read, 1) AS unread, timestamp FROM messages)
             WHERE cls=?
             GROUP BY instance
-            ORDER BY MAX(timestamp)
+            ORDER BY MAX(timestamp) DESC
             LIMIT ? OFFSET ?
             """, (cls, perpage, offset)) ]
 
@@ -328,7 +377,7 @@ class Messenger(object):
             FROM (SELECT cls, instance, read, nullif(read, 1) AS unread, timestamp FROM messages)
             WHERE cls=? AND read=0
             GROUP BY instance
-            ORDER BY MAX(timestamp)
+            ORDER BY MAX(timestamp) DESC
             LIMIT ? OFFSET ?
             """, (cls, perpage, offset)) ]
 
@@ -346,7 +395,7 @@ class Messenger(object):
             SELECT cls, COUNT(*) AS total, COUNT(unread) AS unread
             FROM (SELECT cls, nullif(read, 1) AS unread, timestamp FROM messages)
             GROUP BY cls
-            ORDER BY MAX(timestamp)
+            ORDER BY MAX(timestamp) DESC
             LIMIT ? OFFSET ?
             """, (perpage, offset)) ]
 
@@ -363,7 +412,7 @@ class Messenger(object):
             FROM (SELECT cls, read, nullif(read, 1) AS unread, timestamp FROM messages)
             WHERE read=0
             GROUP BY cls
-            ORDER BY MAX(timestamp)
+            ORDER BY MAX(timestamp) DESC
             LIMIT ? OFFSET ?
             """, (perpage, offset)) ]
 
@@ -372,9 +421,19 @@ class Messenger(object):
     def getCount(self, fid=None):
         """ Get the number of messages that match a filter. """
         if fid is not None:
-            return self.filters[int(fid)].count()
+            return self.filters[int(fid)].count(self.db)
         else:
             return self.db.execute("SELECT COUNT(*) AS total FROM messages").fetchone()["total"]
+            
+    @exported
+    def getOldestUnreadOffset(self, fid):
+        """
+        Gets the offset of the oldest unread message that matches a filter, or
+        -1 if there are no unread messages. Produces undefined behavior
+        if the filter contains a condition on read. Returns
+        (offset, total_count)
+        """
+        return self.filters[int(fid)].oldestUnreadOffset(self.db)
 
 if __name__ == '__main__':
     from subscriptions import SubscriptionManager
