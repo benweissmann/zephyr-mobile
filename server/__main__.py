@@ -9,7 +9,7 @@ class Server(object):
         self._start_time = datetime.now()
         self.username = "ME"
         self.subscriptions = exported(SubscriptionManager(self.username))
-        self.messenger = exported(Messenger(self.subscriptions, self.username))
+        self.messenger = exported(Messenger(self.username))
 
     def _dispatch(self, method, params):
         obj = self

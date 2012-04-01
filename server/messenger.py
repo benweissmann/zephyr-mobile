@@ -93,7 +93,7 @@ class Filter(object):
 
     def applyQuery(self, db, action, offset=0, perpage=-1):
         return db.execute(
-            "%s FROM messages %s ORDER BY timestamp LIMIT ? OFFSET ?" % (action, self._where),
+            "%s FROM messages %s ORDER BY timestamp DESC LIMIT ? OFFSET ?" % (action, self._where),
             self._objs + (perpage,offset)
         )
 
@@ -416,6 +416,25 @@ class Messenger(object):
             LIMIT ? OFFSET ?
             """, (perpage, offset)) ]
 
+    @exported
+    def getPersonals(self, offset=0, perpage=-1):
+        """
+        List the users that have sent personals.
+        Returns:
+            (user, [unread_count, total_count], ...)
+        """
+        return [ (r["sender"], (r["unread"], r["total"])) for r in self.db.execute(
+            """
+            SELECT sender, COUNT(*) AS total, COUNT(unread) AS unread
+            FROM (
+                SELECT sender, read, nullif(read, 1) AS unread, timestamp, cls, instance, user
+                FROM messages
+                WHERE user=? AND instance=? AND cls=?
+            )
+            GROUP BY sender
+            ORDER BY MAX(timestamp) DESC
+            LIMIT ? OFFSET ?
+            """, (self.username, "personal", "message", perpage, offset)) ]
 
     @exported
     def getCount(self, fid=None):
