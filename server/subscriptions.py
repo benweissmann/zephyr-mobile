@@ -9,13 +9,16 @@ def parse_sub(s):
         if s:
             return tuple(s.split(','))
 
-
 def filterFile(fname, func):
     with open(fname) as fi, open(fname, "r+") as fo:
         fo.writelines(l for l in fi.xreadlines() if func(l))
         fo.truncate()
 
 class SubscriptionManager(object):
+    DEFAULT_SUBS = (
+        ('%me%', '*', '*'),
+        ('message', '*', '%me%')
+    )
     def __init__(self, username, zsubfile=settings.ZSUBS):
         self.subscriptions = set() #zephyr.Subscriptions()
         self.submap = {}
@@ -23,14 +26,17 @@ class SubscriptionManager(object):
         self.username = username
         self.zsubfile = zsubfile
 
-        self.load_zsubs()
-
-    def load_zsubs(self):
-        with open(self.zsubfile) as f:
-            for line in f.xreadlines():
-                sub = parse_sub(line)
-                if sub is not None:
-                    self.add(sub, save=False)
+        self.load_or_create_zsubs()
+    
+    def load_or_create_zsubs(self):
+        try:
+            with open(self.zsubfile) as f:
+                for line in f.xreadlines():
+                    sub = parse_sub(line)
+                    if sub is not None:
+                        self.add(sub, save=False)
+        except IOError:
+            self.set(self.DEFAULT_SUBS)
 
     def _add_submap(self, sub):
         """Add a subscription from the subscription matching map."""
@@ -56,6 +62,7 @@ class SubscriptionManager(object):
     @exported
     def set(self, subscriptions, save=True):
         """Set the subscriptions."""
+        self.clear()
         for sub in subscriptions:
             self.subscriptions.add(sub)
             self._add_submap(sub)
