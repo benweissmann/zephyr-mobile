@@ -1,21 +1,22 @@
 package com.benweissmann.zmobile.service.objects;
 
-//TODO: toString, equals, hashCode
+import java.io.Serializable;
 
 /**
  * Immutable class that represents a Zephyr class.
  * 
  * @author Ben Weissmann <bsw@mit.edu>
  */
-public final class ZephyrClass {
+public final class ZephyrClass implements Serializable, ZephyrgramSet {
+    private static final long serialVersionUID = 1L;
     private final String name;
     private final int unreadCount;
-    private final int readCount;
+    private final int totalCount;
 
-    public ZephyrClass(String name, int unreadCount, int readCount) {
+    public ZephyrClass(String name, int unreadCount, int totalCount) {
         this.name = name;
         this.unreadCount = unreadCount;
-        this.readCount = readCount;
+        this.totalCount = totalCount;
     }
 
     /**
@@ -23,6 +24,13 @@ public final class ZephyrClass {
      */
     public Query getQuery() {
         return (new Query()).cls(this);
+    }
+    
+    /**
+     * Returns true iff this class corresponds to personal zephyrs
+     */
+    public boolean isPersonals() {
+        return (this.name.equals(Zephyrgram.PERSONALS_CLASS));
     }
 
     public String getName() {
@@ -33,14 +41,14 @@ public final class ZephyrClass {
         return unreadCount;
     }
 
-    public int getReadCount() {
-        return readCount;
+    public int getTotalCount() {
+        return totalCount;
     }
 
     @Override
     public String toString() {
         return "ZephyrClass [name=" + name + ", unreadCount=" + unreadCount
-                + ", readCount=" + readCount + "]";
+                + ", totalCount=" + totalCount + "]";
     }
 
     @Override
@@ -48,7 +56,7 @@ public final class ZephyrClass {
         final int prime = 31;
         int result = 1;
         result = prime * result + ((name == null) ? 0 : name.hashCode());
-        result = prime * result + readCount;
+        result = prime * result + totalCount;
         result = prime * result + unreadCount;
         return result;
     }
@@ -68,7 +76,7 @@ public final class ZephyrClass {
         }
         else if (!name.equals(other.name))
             return false;
-        if (readCount != other.readCount)
+        if (totalCount != other.totalCount)
             return false;
         if (unreadCount != other.unreadCount)
             return false;

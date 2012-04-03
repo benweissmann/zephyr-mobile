@@ -1,22 +1,23 @@
 package com.benweissmann.zmobile.service.objects;
 
-//TODO: toString, equals, hashCode
+import java.io.Serializable;
 
 /**
  * Immutable class that represent a Zephyr instance
  * @author Ben Weissmann <bsw@mit.edu>
  */
-public final class ZephyrInstance {
+public final class ZephyrInstance implements Serializable, ZephyrgramSet {
+    private static final long serialVersionUID = 1L;
     private final String cls;
     private final String name;
     private final int unreadCount;
-    private final int readCount;
+    private final int totalCount;
     
-    public ZephyrInstance(String cls, String name, int unreadCount, int readCount) {
+    public ZephyrInstance(String cls, String name, int unreadCount, int totalCount) {
         this.cls = cls;
         this.name = name;
         this.unreadCount = unreadCount;
-        this.readCount = readCount;
+        this.totalCount = totalCount;
     }
     
     public Query getQuery() {
@@ -35,14 +36,14 @@ public final class ZephyrInstance {
         return unreadCount;
     }
     
-    public int getReadCount() {
-        return readCount;
+    public int getTotalCount() {
+        return totalCount;
     }
 
     @Override
     public String toString() {
         return "ZephyrInstance [cls=" + cls + ", name=" + name
-                + ", unreadCount=" + unreadCount + ", readCount=" + readCount
+                + ", unreadCount=" + unreadCount + ", totalCount=" + totalCount
                 + "]";
     }
 
@@ -52,7 +53,7 @@ public final class ZephyrInstance {
         int result = 1;
         result = prime * result + ((cls == null) ? 0 : cls.hashCode());
         result = prime * result + ((name == null) ? 0 : name.hashCode());
-        result = prime * result + readCount;
+        result = prime * result + totalCount;
         result = prime * result + unreadCount;
         return result;
     }
@@ -78,7 +79,7 @@ public final class ZephyrInstance {
         }
         else if (!name.equals(other.name))
             return false;
-        if (readCount != other.readCount)
+        if (totalCount != other.totalCount)
             return false;
         if (unreadCount != other.unreadCount)
             return false;

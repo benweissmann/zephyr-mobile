@@ -2,8 +2,35 @@
 <resources>
 
     <string name="hello">Hello World, ZephyrMobileClientActivity!\n</string>
-    <string name="app_name">ZephyrMobileClient</string>
+    <string name="app_name">Zephyr</string>
     <string name="more_zephyrs">More</string>
-    <item type="id" name="test_notification" />
-
+    <string name="all_label">All</string>
+    <string name="personal_label">Personals</string>
+    <string name="star_desc">Star</string>
+    <string name="zephyrgram_metadata_separator">/</string>
+    <string name="next_zephyrgrams">Newer Zephyrs</string>
+    <string name="next_zephyrgrams_loading">Loading Newer Zephyrs</string>
+    <string name="no_next_zephyrgrams">No Newer Zephyrs</string>
+    <string name="prev_zephyrgrams">Older Zephyrs</string>
+    <string name="prev_zephyrgrams_loading">Loading Older Zephyrs</string>
+    <string name="no_prev_zephyrgrams">No Older Zephyrs</string>
+    <string name="personal_zephyr_to_me_prefix">Zephyr from</string>
+    <string name="personal_zephyr_from_me_prefix">Zephyr sent to</string>
+    <string name="compose_label">Compose</string>
+    <string name="refresh_label">Refresh</string>
+    <string name="settings_label">Settings</string>
+    <string name="feedback_label">Feedback</string>
+    <string name="class_compose_label">Class:</string>
+    <string name="instance_compose_label">Instance:</string>
+    <string name="compose_send">Send</string>
+    <string name="recipient_compose_label">To:</string>
+    <string name="compose_class_tab_label">Class</string>
+    <string name="compose_personal_tab_label">Personal</string>
+    <string name="send_start_toast">Sending&#8230;</string>
+	<string name="send_success_toast">Sent zephyr</string>
+	<string name="send_fail_toast">Failed to send zephyr</string>
+	<string name="breadcrumbs_home">Home</string>
+	<string name="breadcrumb_separator">></string>
+	<string name="zephyrgrams_context_menu_reply_class">Reply to class</string>
+	<string name="zephyrgrams_context_menu_reply_personal">Reply to sender</string>
 </resources>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+    <item android:id="@+id/instance_list_menu_compose"
+        android:title="@string/compose_label"
+        android:icon="@drawable/ic_menu_compose"></item>
+    <item android:id="@+id/instance_list_menu_refresh"
+        android:title="@string/refresh_label"
+        android:icon="@drawable/ic_menu_refresh"></item>
+    <item android:id="@+id/instance_list_menu_feedback"
+        android:title="@string/feedback_label"
+        android:icon="@drawable/ic_menu_feedback"></item>
+</menu>
