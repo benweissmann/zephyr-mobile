@@ -93,7 +93,7 @@ class Filter(object):
 
     def applyQuery(self, db, action, offset=0, perpage=-1):
         return db.execute(
-            "%s FROM messages %s ORDER BY timestamp DESC LIMIT ? OFFSET ?" % (action, self._where),
+            "%s FROM messages %s ORDER BY timestamp LIMIT ? OFFSET ?" % (action, self._where),
             self._objs + (perpage,offset)
         )
 
