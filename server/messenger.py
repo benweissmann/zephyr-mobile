@@ -103,7 +103,7 @@ class Filter(object):
     def delete(self, db):
         # XXX: paginate
         #return self.applyQuery(db, "DELETE", offset, perpage).rowcount
-        return db.execute("DELETE messages" + self._where, self._objs).rowcount
+        return db.execute("DELETE FROM messages" + self._where, self._objs).rowcount
 
     def markRead(self, db, updates):
         # XXX: paginate
