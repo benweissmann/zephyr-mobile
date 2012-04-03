@@ -16,3 +16,10 @@ def exported(obj):
 
 def error(msg):
     print(msg)
+
+def sync(func):
+    @wraps(func)
+    def do(self, *args, **kwargs):
+        with self.lock:
+            return func(self, *args, **kwargs)
+    return do

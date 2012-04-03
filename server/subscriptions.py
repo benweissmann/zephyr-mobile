@@ -2,7 +2,7 @@
 # encoding: utf-8
 from . import exported
 import settings
-#import zephyr
+import zephyr
 
 def parse_sub(s):
         s = s[:s.find("#")].strip()
@@ -10,9 +10,11 @@ def parse_sub(s):
             return tuple(s.split(','))
 
 def filterFile(fname, func):
-    with open(fname) as fi, open(fname, "r+") as fo:
-        fo.writelines(l for l in fi.xreadlines() if func(l))
-        fo.truncate()
+    # Python 2.6 compatibility: can't combine with statements.
+    with open(fname) as fi:
+        with open(fname, "r+") as fo:
+            fo.writelines(l for l in fi.xreadlines() if func(l))
+            fo.truncate()
 
 class SubscriptionManager(object):
     DEFAULT_SUBS = (
@@ -20,7 +22,7 @@ class SubscriptionManager(object):
         ('message', '*', '%me%')
     )
     def __init__(self, username, zsubfile=settings.ZSUBS):
-        self.subscriptions = set() #zephyr.Subscriptions()
+        self.subscriptions = zephyr.Subscriptions()
         self.submap = {}
 
         self.username = username

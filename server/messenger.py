@@ -8,19 +8,23 @@ import sqlite3
 import os
 from itertools import izip
 from functools import wraps
+from threading import Thread, RLock
 sqlite3.register_converter("BOOL", lambda v: v != "0")
+import zephyr
+from datetime import datetime
 
 def transaction(func):
     @wraps(func)
     def do(self, *args, **kwargs):
-        try:
-            self.db.commit()
-            r = func(self, *args, **kwargs)
-            self.db.commit()
-            return r
-        except BaseException as e:
-            self.db.rollback()
-            raise e
+        with self.lock:
+            try:
+                self.db.commit()
+                r = func(self, *args, **kwargs)
+                self.db.commit()
+                return r
+            except BaseException as e:
+                self.db.rollback()
+                raise e
     return do
 
 def open_or_create_db(path):
@@ -36,11 +40,14 @@ def open_or_create_db(path):
         directory = os.path.dirname(path)
         if not os.path.isdir(directory):
             os.makedirs(directory)
-    db = sqlite3.connect(path, detect_types=sqlite3.PARSE_DECLTYPES)
+    # Multi-threading ... should be safe
+    db = sqlite3.connect(path, detect_types=sqlite3.PARSE_DECLTYPES, check_same_thread=False)
     db.row_factory = lambda cursor, row: dict(izip((c[0] for c in cursor.description), row))
     db.execute("""CREATE TABLE IF NOT EXISTS messages (
         id          INTEGER NOT NULL PRIMARY KEY,
         sender      TEXT    NOT NULL,
+        auth        BOOL    NOT NULL DEFAULT 1,
+        signature   TEXT    NOT NULL DEFAULT "",
         message     TEXT    NOT NULL,
         read        BOOL    NOT NULL DEFAULT 0,
         cls         TEXT    NOT NULL DEFAULT "message",
@@ -175,12 +182,19 @@ class Filter(object):
             "offset": offset,
         }
 
-class Messenger(object):
-    def __init__(self, username, db_path = settings.ZEPHYR_DB):
+class Messenger(Thread):
+    def __init__(self, username, db_path=settings.ZEPHYR_DB):
+        Thread.__init__(self) # WTF
         self.db = open_or_create_db(db_path)
         self.username = username
         self.filters = {}
+        self.lock = RLock()
 
+    def run(self):
+        while True:
+            self.store_znotice(zephyr.receive(block=True))
+
+    # FOR TESTING
     @transaction
     def store_messages(self, *messages):
         """ Stores a message and returns its ID.
@@ -195,6 +209,35 @@ class Messenger(object):
         return self.db.executemany(
             'INSERT INTO messages(sender, message, cls, instance, user) VALUES (?, ?, ?, ?, ?)',
             iter(messages)
+        )
+
+    @transaction
+    def store_znotice(self, znotice):
+        if znotice.opcode == 'PING':
+            return # Deal with pings later XXX FIXME XXX
+        elif znotice.opcode != '':
+            return # Not a message
+
+        msg = ""
+        sig = ""
+        if len(znotice.fields) == 1:
+            msg = znotice.fields[0]
+        elif len(znotice.fields) > 1:
+            sig = znotice.fields[0]
+            msg = znotice.fields[1]
+
+        return self.db.execute(
+            'INSERT INTO messages(sender, auth, signature, message, cls, instance, user, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            (
+                znotice.sender,
+                znotice.auth,
+                sig,
+                msg,
+                znotice.cls,
+                znotice.instance,
+                znotice.recipient or None,
+                datetime.fromtimestamp(znotice.time)
+            )
         )
 
     @exported
@@ -212,12 +255,14 @@ class Messenger(object):
         >>> messenger = Messenger("ME", ":memory:")
         # Send a message to -c help -i linux
         >>> messenger.send("This is a really short message.", "help", "linux")
-        # Send a message to bsw (the two following are equivalent)
-        >>> messenger.send("This is a really short message.", None, None, "bsw")
+        # Send a message to bsw
         >>> messenger.send("This is a really short message.", "message", "personal", "bsw")
         """
-
-        self.store_messages((self.username, message, cls, instance, user))
+        zephyr.ZNotice(
+            cls=cls,
+            instance=instance,
+            recipient=user,
+            message="%s\x00%s" % (settings.signature, message)).send()
 
     @exported
     def filterMessages(self, messageFilter):

@@ -3,11 +3,13 @@ from subscriptions import SubscriptionManager
 from messenger import Messenger
 from datetime import datetime
 from . import exported
+import _zephyr
+
 
 class Server(object):
     def __init__(self):
         self._start_time = datetime.now()
-        self.username = "ME"
+        self.username = _zephyr.sender()
         self.subscriptions = exported(SubscriptionManager(self.username))
         self.messenger = exported(Messenger(self.username))
 
@@ -30,12 +32,17 @@ class Server(object):
     def getUser(self):
         return self.username
 
+_zephyr.initialize()
+
 server = SimpleXMLRPCServer(('localhost', 9000), allow_none=True)
 server.register_instance(Server())
 server.register_introspection_functions()
 
 try:
+    server.instance.messenger.start()
     server.serve_forever()
 except KeyboardInterrupt:
     print "exiting..."
+finally:
+    pass # Kill zephyr thread.
 
