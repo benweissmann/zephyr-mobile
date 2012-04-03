@@ -13,3 +13,6 @@ def return_status(func):
 def exported(obj):
     obj._export = True
     return obj
+
+def error(msg):
+    print(msg)

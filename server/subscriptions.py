@@ -1,17 +1,42 @@
 #!/usr/bin/env python
 # encoding: utf-8
-from . import return_status, exported
+from . import exported
+import settings
+#import zephyr
 
-def parse_zsubs():
-    return set((("sipb", "*", "*"), ("help", "linux", "*"), ("message", "*", "ME")))
+def parse_sub(s):
+        s = s[:s.find("#")].strip()
+        if s:
+            return tuple(s.split(','))
+
+def filterFile(fname, func):
+    with open(fname) as fi, open(fname, "r+") as fo:
+        fo.writelines(l for l in fi.xreadlines() if func(l))
+        fo.truncate()
 
 class SubscriptionManager(object):
-    def __init__(self, username):
-        self.subscriptions = parse_zsubs()
+    DEFAULT_SUBS = (
+        ('%me%', '*', '*'),
+        ('message', '*', '%me%')
+    )
+    def __init__(self, username, zsubfile=settings.ZSUBS):
+        self.subscriptions = set() #zephyr.Subscriptions()
         self.submap = {}
+
         self.username = username
-        for sub in self.subscriptions:
-            self._add_submap(sub)
+        self.zsubfile = zsubfile
+
+        self.load_or_create_zsubs()
+    
+    def load_or_create_zsubs(self):
+        try:
+            with open(self.zsubfile) as f:
+                for line in f.xreadlines():
+                    sub = parse_sub(line)
+                    if sub is not None:
+                        self.add(sub, save=False)
+        except IOError:
+            self.set(self.DEFAULT_SUBS)
 
     def _add_submap(self, sub):
         """Add a subscription from the subscription matching map."""
@@ -32,56 +57,87 @@ class SubscriptionManager(object):
     @exported
     def get(self):
         """Get a list of subscriptions."""
-        try:
-            return list(self.subscriptions)
-        except Exception as e:
-            return e
+        return list(self.subscriptions)
 
     @exported
-    @return_status
-    def set(self, subscriptions):
+    def set(self, subscriptions, save=True):
         """Set the subscriptions."""
-        self.subscriptions = set(tuple(s) for s in subscriptions)
-        for sub in self.subscriptions:
+        self.clear()
+        for sub in subscriptions:
+            self.subscriptions.add(sub)
             self._add_submap(sub)
+        if save:
+            with open(self.zsubfile, 'w') as f:
+                f.writelines(",".join(sub) + "\n" for sub in self.subscriptions)
+        return True
+
+
 
     @exported
-    @return_status
-    def clear(self):
+    def clear(self, save=True):
         """Clear the subscriptions."""
-        self.subscriptions.clear()
+        for i in tuple(self.subscriptions):
+            self.subscriptions.remove(i)
         self.submap.clear()
+        if save:
+            open(self.zsubfile, 'w').close() # Truncate
+        return True
 
     @exported
-    @return_status
-    def remove(self, subscription):
+    def remove(self, subscription, save=True):
         """Remove the given subscription."""
-        self.subscriptions.remove(tuple(subscription))
+        subscription = tuple(subscription)
+        try:
+            self.subscriptions.remove(subscription)
+        except KeyError:
+            return False
         self._rem_submap(subscription)
+        if save:
+            filterFile(self.zsubfile, lambda l: parse_sub(l) != subscription)
+        return True
 
     @exported
-    @return_status
-    def add(self, subscription):
+    def add(self, subscription, save=True):
         """Add the given subscription."""
-        self.subscriptions.add(tuple(subscription))
+        subscription = tuple(subscription)
+        if subscription in self.subscriptions:
+            return False
+
+        self.subscriptions.add(subscription)
         self._add_submap(subscription)
+        if save:
+            with open(self.zsubfile, 'a') as f:
+                f.write(",".join(subscription) + "\n")
 
     @exported
-    @return_status
-    def removeAll(self, subscriptions):
+    def removeAll(self, subscriptions, save=True):
         """Remove all given subscriptions."""
-        self.subscriptions.difference_update(set(tuple(s) for s in subscriptions))
-        for sub in self.subscriptions:
-            self._rem_submap(sub)
-        
+        changed = 0
+        subscriptions = set(tuple(s) for s in subscriptions)
+        for sub in subscriptions:
+            try:
+                self.subscriptions.remove(sub)
+                self._rem_submap(sub)
+                changed += 1
+            except KeyError:
+                pass
+        if save and changed:
+            filterFile(self.zsubfile, lambda l: parse_sub(l) not in subscriptions)
+        return changed
 
     @exported
-    @return_status
-    def addAll(self, subscriptions):
+    def addAll(self, subscriptions, save=True):
         """Add all given subscriptions."""
-        self.subscriptions.update(set(tuple(s) for s in subscriptions))
-        for sub in self.subscriptions:
+        to_add = set(tuple(s) for s in subscriptions) - self.subscriptions 
+        if not to_add:
+            return 0
+        for sub in to_add:
+            self.subscriptions.add(sub)
             self._add_submap(sub)
+        if save:
+            with open(self.zsubfile, 'a') as f:
+                f.writelines(",".join(sub) + "\n" for sub in to_add)
+        return len(to_add)
 
     @exported
     def matchTripplet(self, cls=None, instance=None, user=None):

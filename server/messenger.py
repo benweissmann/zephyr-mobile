@@ -100,13 +100,17 @@ class Filter(object):
     def get(self, db, offset=0, perpage=-1):
         return self.applyQuery(db, "SELECT *", offset, perpage).fetchall()
 
-    def delete(self, db, offset=0, perpage=-1):
-        return self.applyQuery(db, "DELETE", offset, perpage).rowcount
+    def delete(self, db):
+        # XXX: paginate
+        #return self.applyQuery(db, "DELETE", offset, perpage).rowcount
+        return db.execute("DELETE messages" + self._where, self._objs).rowcount
 
     def markRead(self, db, updates):
+        # XXX: paginate
         return db.execute("UPDATE messages SET read=1" + self._where, self._objs).rowcount
 
     def markUnread(self, db, updates):
+        # XXX: paginate
         return db.execute("UPDATE messages SET read=0" + self._where, self._objs).rowcount
 
     def count(self, db, offset=0, perpage=-1):
@@ -268,9 +272,8 @@ class Messenger(object):
         >>>     "perpage": int,     # The number of results requested.
         >>>     "messages": list    # A list of message dictionaries.
         >>> }
-
-
         """
+
         return self.filters[int(fid)].filterResponse(self.db, offset, perpage)
 
 
@@ -294,19 +297,19 @@ class Messenger(object):
 
     @exported
     @transaction
-    def deleteFilter(self, fid, offset=0, perpage=-1):
+    def deleteFilter(self, fid):
         """
         Delete the messages that match the given filter.
         Returns the number deleted.
         """
-        return self.filters[int(fid)].delete(self.db, offset, perpage)
+        return self.filters[int(fid)].delete(self.db)
 
     @exported
-    def markFilter(self, status, fid, offset=0, perpage=-1):
+    def markFilter(self, status, fid):
         if status == "read":
-            return self.markFilterRead(offset, perpage)
+            return self.markFilterRead(fid)
         elif status == "unread":
-            return self.markFilterUnread(offset, perpage)
+            return self.markFilterUnread(fid)
 
     @exported
     @transaction
@@ -423,18 +426,19 @@ class Messenger(object):
         Returns:
             (user, [unread_count, total_count], ...)
         """
+        # XXX: get all personal messages regardless of username.
         return [ (r["sender"], (r["unread"], r["total"])) for r in self.db.execute(
             """
             SELECT sender, COUNT(*) AS total, COUNT(unread) AS unread
             FROM (
                 SELECT sender, read, nullif(read, 1) AS unread, timestamp, cls, instance, user
                 FROM messages
-                WHERE user=? AND instance=? AND cls=?
+                WHERE user IS NOT NULL AND instance=? AND cls=?
             )
             GROUP BY sender
             ORDER BY MAX(timestamp) DESC
             LIMIT ? OFFSET ?
-            """, (self.username, "personal", "message", perpage, offset)) ]
+            """, ("personal", "message", perpage, offset)) ]
 
     @exported
     def getCount(self, fid=None):
