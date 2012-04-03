@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:orientation="vertical" >
+
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:paddingBottom="20dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/recipient_compose_label"
+            android:textAppearance="?android:attr/textAppearanceMedium" />
+
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:gravity="right" >
+
+            <EditText
+                android:id="@+id/compose_personal_to"
+                android:layout_width="200dp"
+                android:layout_height="wrap_content"
+                android:inputType="text" >
+            </EditText>
+        </LinearLayout>
+    </LinearLayout>
+
+    <EditText
+        android:id="@+id/compose_personal_body"
+        android:layout_width="fill_parent"
+        android:layout_height="200dp"
+        android:gravity="top|left"
+        android:inputType="textMultiLine"
+        android:scrollHorizontally="false" >
+    </EditText>
+
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:gravity="right"
+        android:paddingTop="20dp" >
+
+        <Button
+            android:id="@+id/compose_personal_send"
+            android:layout_width="75dp"
+            android:layout_height="wrap_content"
+            android:text="@string/compose_send" />
+    </LinearLayout>
+
+</LinearLayout>

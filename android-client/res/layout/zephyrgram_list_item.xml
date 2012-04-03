@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:orientation="vertical"
+    android:paddingLeft="3dp"
+    android:paddingRight="3dp" >
+
+    <LinearLayout
+        android:id="@+id/zephyrgram_top_bar"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal" >
+        <LinearLayout
+            android:id="@+id/zephyrgram_triplet"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="left">
+
+            <TextView
+                android:id="@+id/zephyrgram_class"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceSmall" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingLeft="2dp"
+                android:paddingRight="2dp"
+                android:text="@string/zephyrgram_metadata_separator"
+                android:textAppearance="?android:attr/textAppearanceSmall" />
+
+            <TextView
+                android:id="@+id/zephyrgram_instance"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceSmall" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingLeft="2dp"
+                android:paddingRight="2dp"
+                android:text="@string/zephyrgram_metadata_separator"
+                android:textAppearance="?android:attr/textAppearanceSmall" />
+
+            <TextView
+                android:id="@+id/zephyrgram_sender"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:textStyle="bold" />
+        </LinearLayout>
+        
+        <LinearLayout
+            android:id="@+id/zephyrgram_personal_header"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="left" >
+            
+            <TextView
+                android:id="@+id/personal_zephyr_to_me_prefix_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/personal_zephyr_to_me_prefix"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:paddingRight="3dp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+            
+            <TextView
+                android:id="@+id/personal_zephyr_from_me_prefix_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/personal_zephyr_from_me_prefix"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:paddingRight="3dp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+            
+            <TextView
+                android:id="@+id/zephyrgram_personal_sender"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:textStyle="bold" />
+            
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:gravity="right" >
+
+            <TextView
+                android:id="@+id/zephyrgram_time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceSmall" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/zephyrgram_body"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingLeft="20dp"
+        android:textAppearance="?android:attr/textAppearanceSmall" />
+
+</LinearLayout>

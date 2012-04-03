@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+    
+    <item android:id="@+id/zephyrgrams_context_menu_reply_class"
+        android:title="@string/zephyrgrams_context_menu_reply_class"></item>
+    <item android:id="@+id/zephyrgrams_context_menu_reply_personal"
+        android:title="@string/zephyrgrams_context_menu_reply_personal"></item>
+    
+</menu>

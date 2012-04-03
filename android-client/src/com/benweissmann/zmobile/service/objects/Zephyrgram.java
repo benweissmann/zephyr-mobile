@@ -2,6 +2,8 @@ package com.benweissmann.zmobile.service.objects;
 
 import java.util.Date;
 
+import com.benweissmann.zmobile.service.ZephyrService;
+
 //TODO: toString, equals, hashCode
 
 /**
@@ -10,6 +12,9 @@ import java.util.Date;
  * @author Ben Weissmann <bsw@mit.edu>
  */
 public final class Zephyrgram {
+    public static final String PERSONALS_CLASS = "message";
+    public static final String DEFAULT_INSTANCE = "personal";
+    
     private final String cls;
     private final String instance;
     private final String sender;
@@ -28,25 +33,27 @@ public final class Zephyrgram {
         this.user = user;
         this.body = body;
     }
-
-    public Zephyrgram(String cls, String instance, String sender,
-            Date timestamp, boolean read, String body) {
-        this(cls, instance, sender, timestamp, read, null, body);
+    
+    public Zephyrgram(String cls, String instance, String body) {
+        this(cls, instance, null, new Date(), true, null, body);
     }
-
-    public Zephyrgram(String cls, String instance, String sender, String body) {
-        this(cls, instance, sender, new Date(), false, body);
+    
+    public Zephyrgram(String user, String body) {
+        this(PERSONALS_CLASS, DEFAULT_INSTANCE, null, new Date(), true, user, body);
     }
-
-    public Zephyrgram(String sender, Date timestamp, boolean read, String user,
-            String body) {
-        this("message", "personal", sender, timestamp, read, user, body);
+    
+    public boolean isPersonal() {
+        return this.cls.equals(PERSONALS_CLASS);
     }
-
-    public Zephyrgram(String sender, String user, String body) {
-        this(sender, new Date(), false, user, body);
+    
+    public boolean isToMe() {
+        return (this.user != null) && this.user.equals(ZephyrService.USER_NAME);
     }
-
+    
+    public boolean isFromMe() {
+        return this.sender.equals(ZephyrService.USER_NAME);
+    }
+    
     public String getCls() {
         return cls;
     }
@@ -61,6 +68,13 @@ public final class Zephyrgram {
 
     public Date getTimestamp() {
         return (Date) timestamp.clone();
+    }
+    
+    /**
+     * Returns the time this zephyr was sent in the format hh:mm
+     */
+    public String getTime() {
+        return String.format("%02d:%02d", timestamp.getHours(), timestamp.getMinutes());
     }
 
     public boolean isRead() {

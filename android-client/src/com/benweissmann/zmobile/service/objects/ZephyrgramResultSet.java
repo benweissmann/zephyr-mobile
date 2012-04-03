@@ -5,10 +5,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-import com.benweissmann.zmobile.service.ZephyrService;
-
-//TODO: toString, equals, hashCode
-
 /**
  * Immutable class representing a set of Zephyrgrams returned by the server.
  * @author Ben Weissmann <bsw@mit.edu>
@@ -16,8 +12,7 @@ import com.benweissmann.zmobile.service.ZephyrService;
 public final class ZephyrgramResultSet implements Iterable<Zephyrgram> {
     private final Query query;
     private final String filterId;
-    private final int page;
-    private final int resultLength;
+    private final int offset;
     final List<Zephyrgram> zephyrgrams;
     
     /**
@@ -28,26 +23,18 @@ public final class ZephyrgramResultSet implements Iterable<Zephyrgram> {
      * @param resultLength The number of results for the query, ignoring pagination
      * @param zephyrgrams  A list of Zephyrgrams on this page of the results
      */
-    public ZephyrgramResultSet(Query query, String filterId, int page, int resultLength, List<Zephyrgram> zephyrgrams) {
+    public ZephyrgramResultSet(Query query, String filterId, int offset, List<Zephyrgram> zephyrgrams) {
         this.query = query;
         this.filterId = filterId;
-        this.page = page;
-        this.resultLength = resultLength;
+        this.offset = offset;
         this.zephyrgrams = new ArrayList<Zephyrgram>(zephyrgrams);
-    }
-    
-    /**
-     * Returns true iff there is another page of results to be fetched
-     */
-    public boolean hasNextPage() {
-        return (this.getOffset() + this.getPageLength()) < this.resultLength;
     }
     
     /**
      * Returns this page's offset (the index of its first element)
      */
     public int getOffset() {
-        return this.page * ZephyrService.ZEPHYRGRAMS_PER_PAGE;
+        return this.offset;
     }
 
     /**
@@ -56,13 +43,6 @@ public final class ZephyrgramResultSet implements Iterable<Zephyrgram> {
      */
     public Query getQuery() {
         return query;
-    }
-
-    /**
-     * Returns this result set's page number
-     */
-    public int getPage() {
-        return page;
     }
     
     /**
@@ -81,17 +61,14 @@ public final class ZephyrgramResultSet implements Iterable<Zephyrgram> {
     }
 
     /**
-     * Returns the number of results for the query, ignoring pagination
-     */
-    public int getResultLength() {
-        return resultLength;
-    }
-
-    /**
-     * Returns this page of Zephyrgrams
+     * Returns this page of Zephyrgrams as an unmodifiable list.
      */
     public List<Zephyrgram> getZephyrgrams() {
         return Collections.unmodifiableList(zephyrgrams);
+    }
+    
+    public Zephyrgram get(int i) {
+        return this.zephyrgrams.get(i);
     }
     
     /**
@@ -104,8 +81,7 @@ public final class ZephyrgramResultSet implements Iterable<Zephyrgram> {
     @Override
     public String toString() {
         return "ZephyrgramResultSet [query=" + query + ", filterId=" + filterId
-                + ", page=" + page + ", resultLength=" + resultLength
-                + ", zephyrgrams=" + zephyrgrams + "]";
+                + ", offset=" + offset + ", zephyrgrams=" + zephyrgrams + "]";
     }
 
     @Override
@@ -114,9 +90,8 @@ public final class ZephyrgramResultSet implements Iterable<Zephyrgram> {
         int result = 1;
         result = prime * result
                 + ((filterId == null) ? 0 : filterId.hashCode());
-        result = prime * result + page;
+        result = prime * result + offset;
         result = prime * result + ((query == null) ? 0 : query.hashCode());
-        result = prime * result + resultLength;
         result = prime * result
                 + ((zephyrgrams == null) ? 0 : zephyrgrams.hashCode());
         return result;
@@ -137,15 +112,13 @@ public final class ZephyrgramResultSet implements Iterable<Zephyrgram> {
         }
         else if (!filterId.equals(other.filterId))
             return false;
-        if (page != other.page)
+        if (offset != other.offset)
             return false;
         if (query == null) {
             if (other.query != null)
                 return false;
         }
         else if (!query.equals(other.query))
-            return false;
-        if (resultLength != other.resultLength)
             return false;
         if (zephyrgrams == null) {
             if (other.zephyrgrams != null)

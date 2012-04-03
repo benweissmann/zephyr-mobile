@@ -1,5 +1,7 @@
 package com.benweissmann.zmobile.service.objects;
 
+import java.io.Serializable;
+
 // TODO: toString, equals, hashCode
 
 /**
@@ -14,7 +16,8 @@ package com.benweissmann.zmobile.service.objects;
  * 
  * @author Ben Weissmann <bsw@mit.edu>
  */
-public final class Query {
+public final class Query implements Serializable {
+    private static final long serialVersionUID = 1L;
     private final String cls;
     private final String instance;
     private final String text;
