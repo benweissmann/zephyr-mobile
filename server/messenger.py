@@ -5,7 +5,7 @@ logging.basicConfig(level=logging.DEBUG)
 from . import return_status, exported
 import settings
 import sqlite3
-import os
+import select, os
 from itertools import izip
 from functools import wraps
 from threading import Thread, RLock
@@ -189,10 +189,20 @@ class Messenger(Thread):
         self.username = username
         self.filters = {}
         self.lock = RLock()
+        self._rpipe, self._wpipe = os.pipe()
 
     def run(self):
-        while True:
-            self.store_znotice(zephyr.receive(block=True))
+        fd = zephyr._z.getFD()
+        while fd in select.select([fd, self._rpipe], [], [])[0]:
+            self.store_znotice(zephyr.receive())
+
+        # In case the file descriptor changed.
+        if fd != zephyr._z.getFD():
+            self.run()
+
+    def quit(self):
+        os.write(self._wpipe, "\x01")
+        self.join()
 
     # FOR TESTING
     @transaction
