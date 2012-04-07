@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Zephyr Mobile</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <!-- Le styles -->
+    <link href="bootstrap/css/bootstrap.css" rel="stylesheet">
+    <link href="assets/css/styles.css" rel="stylesheet">
+    <link href="bootstrap/css/bootstrap-responsive.css" rel="stylesheet">
+
+    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <!-- fav and touch icons -->
+    <link rel="shortcut icon" href="ico/favicon.ico">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="ico/apple-touch-icon-114-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="ico/apple-touch-icon-72-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" href="ico/apple-touch-icon-57-precomposed.png">
+  </head>
+
+  <body data-spy="scroll">
+
+    <div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+          <a class="brand" href="#">Zephyr Mobile</a>
+          <div class="nav-collapse">
+            <ul class="nav">
+              <li class="active"><a href="#overview">Overview</a></li>
+              <li><a href="#setup">Setup & Installation</a></li>
+              <li><a href="#developers">Developers</a></li>
+              <li><a href="#roadmap">Roadmap</a></li>
+              <li><a href="#contact">Feedback</a></li>
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+
+    <div class="container main-content">
+
+      <div class="hero-unit">
+        <h1 id="overview">Zephyr Mobile</h1>
+        <p>
+          Zephyr Mobile is an Android interface for the
+          <a href="http://sipb.mit.edu/doc/zephyr/">Zephyr messaging system</a>.
+        </p>
+        
+        <p>
+          The mobile client is paired with a backend server that you run on your
+          favorite dialup athena machine (e.g. linerva). The backend server
+          stores your data in your own personal database that's stored in your
+          AFS home directory. This means that your zephyrs are stored forever,
+          even if your dialup goes down.
+        </p>
+      </div>
+
+      <div class="row">
+        <h2 id="setup">Setup and Installation</h2>
+        <p>
+          First, you need to get the backend server running. SSH into your dialup
+          and create a screen session or attach to an existing one -- just
+          like you're connecting to abarnowl session. From there, create
+          a new window in screen with C-a c (that's control and &ldquo;a&rdquo;
+          at the same time, followed by &ldquo;c&rdquo;). You can cycle between
+          your screen windows with C-a n. In the new screen window, run
+          <tt>add steb</tt> and then <tt>start-zephyr-server</tt>. Note
+          that the backend server must stay running (just like barnowl), so
+          you'll need to repeat this procedure if your dialup goes down.
+        </p>
+        <p>
+          Second, you'll need to install the Zephyr Mobile app. It's not yet
+          in the market, so click <a href="downloads/zephyr-mobile.apk">
+          this link</a> on your android phone to download the APK. Your phone
+          should prompt you to install the app, but you may need to enable
+          installation of apps from non-market sources. You can do this
+          in Settings &raquo; Applications &raquo; Unknown Sources.
+        </p>
+        <p>
+          If you run into any problems trying to get set up, drop us a line
+          at <a href="mailto:zephyr-mobile@mit.edu">zephyr-mobile@mit.edu</a>
+          or talk to us on <tt>-c zmobile</tt>.
+        </p>
+      </div>
+      
+      <div class="row">
+        <h2 id="developers">Developers</h2>
+        <p>
+          Mobile Zephyr (including the backend server) are developed on Github.
+          We always appreciate contributions -- the best way is to fork the
+          project, work on your patch, and then submit a pull request. We're
+          happy to help you get familiar with the code base -- send us
+          an email or zephyr and we'll set something up.
+        </p>
+      </div>
+      
+      <div class="row">
+        <h2 id="roadmap">Roadmap</h2>
+        <h3>Beta 2</h3>
+        
+        <p>
+          The target release date for Beta 2 is 5/8/12. A partial list of
+          planned feature additions:
+        </p>
+        
+        <ul>
+          <li>Publish app in Android Market</li>
+          <li>Automatic setup through the mobile app</li>
+          <li>Barnowl plugin to mark messages as read</li>
+          <li>Load colors and use them when displaying zephyrs</li>
+        </ul>
+        
+        <h3>Wishlist</h3>
+        <p>
+          These features are planned, but don't have an estimated delivery date.
+        </p>
+        
+        <ul>
+          <li>Color filter manager for mobile app</li>
+        </ul>
+
+        <h3>Have a request?</h3>
+        <p>
+          Let us know if there's a feature you'd like that isn't here.
+        </p>
+      </div>
+      
+      <div class="row">
+        <h2 id="contact">Feedback</h2>
+        <p>
+          If you have questions, feedback, bug reports, feature request, or
+          any other comments, send them to
+          <a href="mailto:zephyr-mobile@mit.edu">zephyr-mobile@mit.edu</a>
+          or <tt>-c zmobile</tt>
+        </p>
+      </div>
+
+      <hr>
+
+      <footer>
+        <p>&copy; Ben Weissmann 2012</p>
+      </footer>
+
+    </div> <!-- /container -->
+
+    <script src="assets/js/jquery.js"></script>
+    <script src="bootstrap/js/bootstrap.js"></script>
+
+  </body>
+</html>
+

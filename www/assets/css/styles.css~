@@ -1,0 +1,14 @@
+body {
+  background-image:url('../img/background.gif');
+}
+
+.container.main-content {
+  box-shadow: 0 0 100px 2px #000;
+  background-color: white;
+  padding-top: 60px;
+  padding-left: 30px;
+  padding-right: 30px;
+}
+.container.main-content .row {
+  margin-left: 0;
+}
