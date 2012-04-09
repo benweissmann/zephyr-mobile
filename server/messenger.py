@@ -2,7 +2,7 @@
 # encoding: utf-8
 import logging
 logging.basicConfig(level=logging.DEBUG)
-from . import return_status, exported
+from common import return_status, exported
 import settings
 import sqlite3
 import select, os
@@ -12,6 +12,8 @@ from threading import Thread, RLock
 sqlite3.register_converter("BOOL", lambda v: v != "0")
 import zephyr
 from datetime import datetime
+
+__all__ = ("Filter", "Messenger")
 
 def transaction(func):
     @wraps(func)
@@ -512,8 +514,3 @@ class Messenger(Thread):
         (offset, total_count)
         """
         return self.filters[int(fid)].oldestUnreadOffset(self.db)
-
-if __name__ == '__main__':
-    from subscriptions import SubscriptionManager
-    m = Messenger(SubscriptionManager("ME"), "ME")
-    f, c = m.filterMessages()

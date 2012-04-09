@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 # encoding: utf-8
-from . import exported
+from common import exported
 import settings
 import zephyr
+
+__all__ = ("SubscriptionManager",)
 
 def parse_sub(s):
         s = s[:s.find("#")].strip()
