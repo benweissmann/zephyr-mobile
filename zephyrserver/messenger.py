@@ -124,7 +124,7 @@ class Filter(object):
 
     def count(self, db, offset=0, perpage=-1):
         return self.applyQuery(db, "SELECT count(*) AS total", offset, perpage).fetchone()["total"]
-        
+
     def counts(self, db):
         """
         Returns (unread_count, total_count)
@@ -139,11 +139,11 @@ class Filter(object):
                 """ % (self._where)
         result = db.execute(query, self._objs).fetchone()
         return (result['unread'], result['total'])
-        
+
     def oldestUnreadOffset(self, db):
         """
         selects the offset of the oldest unread zephyr using a query similar to
-        
+
         SELECT count(*) AS offset
         FROM  messages
         WHERE col1=val1 AND col2=val2 AND timestamp < (
@@ -153,16 +153,16 @@ class Filter(object):
             ORDER BY timestamp
             LIMIT 1
         )
-        
+
         If there are no unread messages, uses -1
-        
+
         Returns (offset, total_count)
         """
-        
+
         unread, total = self.counts(db)
         if unread == 0:
             return (-1, total)
-    
+
         subquery_where = " AND ".join(self._query_list + ("read=0",))
         subquery = "SELECT timestamp FROM messages WHERE %s ORDER BY timestamp LIMIT 1" % (subquery_where)
         query_where_addendum = "timestamp < (%s)" % (subquery)
@@ -308,7 +308,7 @@ class Messenger(Thread):
                       A negitive offset will index backwards.
             perpage - The maximum number of of results to return. Passing a
                       negative number returns all results.
-        
+
         >>> from . import subscriptions
         >>> m = Messenger(subscriptions.SubscriptionManager("ME"), "ME")
         >>> m.store_message(
@@ -504,7 +504,7 @@ class Messenger(Thread):
             return self.filters[int(fid)].count(self.db)
         else:
             return self.db.execute("SELECT COUNT(*) AS total FROM messages").fetchone()["total"]
-            
+
     @exported
     def getOldestUnreadOffset(self, fid):
         """

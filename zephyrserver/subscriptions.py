@@ -31,7 +31,7 @@ class SubscriptionManager(object):
         self.zsubfile = zsubfile
 
         self.load_or_create_zsubs()
-    
+
     def load_or_create_zsubs(self):
         try:
             with open(self.zsubfile) as f:
@@ -132,7 +132,7 @@ class SubscriptionManager(object):
     @exported
     def addAll(self, subscriptions, save=True):
         """Add all given subscriptions."""
-        to_add = set(tuple(s) for s in subscriptions) - self.subscriptions 
+        to_add = set(tuple(s) for s in subscriptions) - self.subscriptions
         if not to_add:
             return 0
         for sub in to_add:
@@ -162,11 +162,10 @@ class SubscriptionManager(object):
             mp = mp["*"]
         else:
             return False
-        
+
         return bool("*" in mp or user in mp)
 
     @exported
     def isSubscribed(self, subscription):
         """Returns true if the user is subscribed to the given triplet."""
         return tuple(subscription) in self.subscriptions
-

@@ -11,7 +11,7 @@ class testMessenger(unittest.TestCase):
         self.messenger.store_messages(
             ("SENDER", "MESSAGE", "CLASS", "INSTANCE", "USER"),
             ("SENDER", "MESSAGE2", "CLASS", "INSTANCE", "USER")
-        ) 
+        )
         m1, m2 = self.messenger.db.execute("SELECT * FROM messages ORDER BY id").fetchall()
         self.assertLessEqual((datetime.now() - m1["timestamp"]).total_seconds(), 5)
         del m1["timestamp"]
@@ -68,14 +68,14 @@ class testMessenger(unittest.TestCase):
         self.messenger.store_messages(
             ("bsw", "Other help message", "help", "other", None),
             ("bsw", "User Message", "help", "other", None)
-        ) 
+        )
         return (t1, t2)
 
     def cleanResponse(self, response):
         for m in response["messages"]:
             del m["timestamp"]
             del m["id"]
-        
+
 
     def testFilterMessagesClass(self):
         self.populateTestMessages()
@@ -204,7 +204,7 @@ class testMessenger(unittest.TestCase):
             'offset': 0,
             'perpage': -1
         })
-        
+
 
 
 if __name__ == '__main__':
