@@ -27,7 +27,9 @@ class SimpleBlockingQueue(object):
             return self.items.popright()
 
     def interrupt(self):
-        self.condition.notifyAll()
+        with self.condition:
+            self.interrupted = True
+            self.condition.notifyAll()
 
 
 

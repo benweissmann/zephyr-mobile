@@ -9,6 +9,7 @@ from itertools import izip
 from functools import wraps
 from threading import Thread, RLock
 from datetime import datetime
+import os
 sqlite3.register_converter("BOOL", lambda v: v != "0")
 try:
     import zephyr
@@ -194,8 +195,10 @@ class Messenger(Thread):
         while True:
             z = zephyr.receive(block=True)
             if z is None:
+                print "Stopping receiving thread..."
                 return
-            self.store_znotice(zephyr.receive())
+            self.store_znotice(z)
+        print "Stopping receiving thread..."
 
     def quit(self):
         zephyr.interrupt()
@@ -220,10 +223,10 @@ class Messenger(Thread):
 
     @transaction
     def store_znotice(self, znotice):
-        if znotice.opcode == 'PING':
-            return # Deal with pings later XXX FIXME XXX
-        elif znotice.opcode != '':
-            return # Not a message
+        if znotice.kind != 2:
+            return # Not interested.
+        if znotice.opcode:
+            return # Not a message (ping or something).
 
         msg = ""
         sig = ""
