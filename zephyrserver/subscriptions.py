@@ -71,9 +71,7 @@ class SubscriptionManager(object):
     def set(self, subscriptions, save=True):
         """Set the subscriptions."""
         self.clear()
-        for sub in subscriptions:
-            self.subscriptions.add(sub)
-            self._add_submap(sub)
+        self.subscriptions.update(subscriptions)
         if save:
             with open(self.zsubfile, 'w') as f:
                 f.writelines(",".join(sub) + "\n" for sub in self.subscriptions)
@@ -84,8 +82,7 @@ class SubscriptionManager(object):
     @exported
     def clear(self, save=True):
         """Clear the subscriptions."""
-        for i in tuple(self.subscriptions):
-            self.subscriptions.remove(i)
+        self.subscriptions.clear()
         self.submap.clear()
         if save:
             open(self.zsubfile, 'w').close() # Truncate
@@ -120,32 +117,29 @@ class SubscriptionManager(object):
     @exported
     def removeAll(self, subscriptions, save=True):
         """Remove all given subscriptions."""
-        changed = 0
-        subscriptions = set(tuple(s) for s in subscriptions)
+        subscriptions = self.intersection(tuple(s) for s in subscriptions)
+        if not subscriptions:
+            return
+        self.subscriptions.difference_update(subscriptions)
         for sub in subscriptions:
-            try:
-                self.subscriptions.remove(sub)
                 self._rem_submap(sub)
-                changed += 1
-            except KeyError:
-                pass
-        if save and changed:
+        if save:
             filterFile(self.zsubfile, lambda l: parse_sub(l) not in subscriptions)
-        return changed
+        return len(subscriptions)
 
     @exported
     def addAll(self, subscriptions, save=True):
         """Add all given subscriptions."""
-        to_add = set(tuple(s) for s in subscriptions) - self.subscriptions
-        if not to_add:
+        subscriptions = set(tuple(s) for s in subscriptions) - self.subscriptions
+        if not subscriptions:
             return 0
-        for sub in to_add:
-            self.subscriptions.add(sub)
+        self.subscriptions.update(subscriptions)
+        for sub in subscriptions:
             self._add_submap(sub)
         if save:
             with open(self.zsubfile, 'a') as f:
-                f.writelines(",".join(sub) + "\n" for sub in to_add)
-        return len(to_add)
+                f.writelines(",".join(sub) + "\n" for sub in subscriptions)
+        return len(subscriptions)
 
     @exported
     def matchTripplet(self, cls=None, instance=None, user=None):
