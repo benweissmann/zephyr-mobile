@@ -5,7 +5,12 @@ class testMessenger(unittest.TestCase):
 
     def setUp(self):
         import messenger
-        messenger.preferences = {"starred-classes": ["help"], "signature": "", "hidden-classes": ["message"]}
+        import settings
+
+        settings.setVariable("starred-classes", ["help"])
+        settings.setVariable("signature", "")
+        settings.setVariable("hidden-classes", ["message"])
+
         self.messenger = messenger.Messenger("ME", ":memory:")
 
     def testStoreMessages(self):

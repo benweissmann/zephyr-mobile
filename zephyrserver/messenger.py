@@ -272,7 +272,7 @@ class Messenger(Thread):
             cls=cls,
             instance=instance,
             recipient=user,
-            message="%s\x00%s" % (settings.get("signature"), message)).send()
+            message="%s\x00%s" % (settings.getVariable("signature"), message)).send()
 
     @exported
     def filterMessages(self, messageFilter):
@@ -426,8 +426,8 @@ class Messenger(Thread):
 
         # XXX: This should be done with plugins and callbacks
 
-        starred_classes = settings.get("starred-classes")
-        hidden_classes = settings.get("hidden-classes")
+        starred_classes = settings.getVariable("starred-classes")
+        hidden_classes = settings.getVariable("hidden-classes")
 
         def set_starred(item):
             item["starred"] = item["cls"] in starred_classes
