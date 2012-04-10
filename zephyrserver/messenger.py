@@ -416,6 +416,23 @@ class Messenger(Thread):
         """ Get all of the message ids that match the given filter. """
         return self.filters[int(fid)].getIDs(self.db, offset, perpage)
 
+    def starAndHide(self, classes):
+        """
+        Star and hide a given list of classes.
+        """
+
+        # XXX: This should be done with plugins and callbacks
+
+        starred_classes = set(preferences["starred-classes"])
+        hidden_classes = set(preferences["hidden-classes"])
+
+        def set_starred(item):
+            item["starred"] = item["cls"] in starred_classes
+            return item
+
+
+        return [set_starred(c) for c in classes if c["cls"] not in hidden_classes]
+
     @exported
     def getInstances(self, cls, offset=0, perpage=-1):
         """ List the instances with messages in a given class.
@@ -475,22 +492,14 @@ class Messenger(Thread):
              },
             ]
         """
-        classes = self.db.execute(
+        return self.starAndHide(self.db.execute(
             """
             SELECT cls, COUNT(*) AS total, COUNT(unread) AS unread
             FROM (SELECT cls, nullif(read, 1) AS unread, timestamp FROM messages)
             GROUP BY cls
             ORDER BY MAX(timestamp) DESC
             LIMIT ? OFFSET ?
-            """, (perpage, offset)).fetchall()
-
-        # XXX: This is wrong. I should get all of the subscribed classes.
-
-        starred_classes = set(preferences["starred-classes"])
-        for c in classes:
-            c["starred"] = c["cls"] in starred_classes
-
-        return classes
+            """, (perpage, offset)))
 
 
     @exported
@@ -507,7 +516,7 @@ class Messenger(Thread):
             ]
 
         """
-        classes = self.db.execute(
+        return self.starAndHide(self.db.execute(
             """
             SELECT cls, COUNT(*) AS total, COUNT(unread) AS unread
             FROM (SELECT cls, read, nullif(read, 1) AS unread, timestamp FROM messages)
@@ -515,14 +524,8 @@ class Messenger(Thread):
             GROUP BY cls
             ORDER BY MAX(timestamp) DESC
             LIMIT ? OFFSET ?
-            """, (perpage, offset)).fetchall()
+            """, (perpage, offset)))
 
-        # I store the starred attribute separately because it is not a feature of zephyr.
-        starred_classes = set(preferences["starred-classes"])
-        for c in classes:
-            c["starred"] = c["cls"] in starred_classes
-
-        return classes
 
     @exported
     def getPersonals(self, offset=0, perpage=-1):

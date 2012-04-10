@@ -5,7 +5,7 @@ class testMessenger(unittest.TestCase):
 
     def setUp(self):
         import messenger
-        messenger.preferences = {"starred-classes": ["help"], "signature": ""}
+        messenger.preferences = {"starred-classes": ["help"], "signature": "", "hidden-classes": ["message"]}
         self.messenger = messenger.Messenger("ME", ":memory:")
 
     def testStoreMessages(self):
@@ -245,7 +245,6 @@ class testMessenger(unittest.TestCase):
         self.assertEquals(self.messenger.getClasses(),
                     [
                         {'cls': u'help', 'starred': True, 'total': 5, 'unread': 5},
-                        {'cls': u'message', 'starred': False, 'total': 2, 'unread': 2},
                         {'cls': u'offtopic', 'starred': False, 'total': 1, 'unread': 1},
                     ]
                    )
