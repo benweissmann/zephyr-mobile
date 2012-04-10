@@ -6,6 +6,8 @@ from common import exported, assertCompatable, assertAuthenticated
 import preferences
 import sys
 from . import VERSION
+import ssl
+
 try:
     import zephyr
 except ImportError:
@@ -19,7 +21,8 @@ DEFAULT_PORT = 9000
 DEFAULT_HOST = "localhost"
 
 class ZephyrXMLRPCServer(SimpleXMLRPCServer, object):
-    def __init__(self, host=DEFAULT_HOST, port=DEFAULT_PORT):
+    def __init__(self, host=DEFAULT_HOST, port=DEFAULT_PORT, ssl=True):
+        self.use_ssl = ssl
         super(ZephyrXMLRPCServer, self).__init__((host, port), allow_none=True)
         zephyr.init()
         self.username = zephyr.sender()
@@ -30,6 +33,11 @@ class ZephyrXMLRPCServer(SimpleXMLRPCServer, object):
     def authenticate(self, username, password):
         # Call kinit. if true: set token
         return True #XXX
+
+    def server_bind(self):
+        if self.use_ssl:
+            self.socket = ssl.wrap_socket(self.socket)
+        super(ZephyrXMLRPCServer, self).server_bind()
 
     def _dispatch(self, method, params):
         # Need to pop
