@@ -5,7 +5,6 @@ logging.basicConfig(level=logging.DEBUG)
 from common import return_status, exported
 from settings import ZEPHYR_DB, preferences
 import sqlite3
-import select, os
 from itertools import izip
 from functools import wraps
 from threading import Thread, RLock
@@ -190,7 +189,6 @@ class Messenger(Thread):
         self.username = username
         self.filters = {}
         self.lock = RLock()
-        self._rpipe, self._wpipe = os.pipe()
 
     def run(self):
         while True:
@@ -200,7 +198,7 @@ class Messenger(Thread):
             self.store_znotice(zephyr.receive())
 
     def quit(self):
-        os.write(self._wpipe, "\x01")
+        zephyr.interrupt()
         self.join()
 
     # FOR TESTING

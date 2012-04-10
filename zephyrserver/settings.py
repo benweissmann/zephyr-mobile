@@ -12,7 +12,8 @@ ZSUBS = os.path.join(os.environ.get("HOME"), ".zephyr.subs")
 class Preferences(dict):
     DEFAULTS = {
         "signature": pwd.getpwuid(os.getuid()).pw_gecos.split(',', 1)[0],
-        "starred-classes": []
+        "starred-classes": [],
+        "hidden-classes": ["message"]
     }
     _obj = None
     def __init__(self, config_file):
