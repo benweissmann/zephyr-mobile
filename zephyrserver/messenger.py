@@ -3,7 +3,7 @@
 import logging
 logging.basicConfig(level=logging.DEBUG)
 from common import return_status, exported
-import settings
+from settings import ZEPHYR_DB, preferences
 import sqlite3
 import select, os
 from itertools import izip
@@ -37,7 +37,6 @@ def open_or_create_db(path):
         path -  the path to the database. the database does not need to exist
                 but the parent directory must.
     """
-    print path
     if path != ":memory:":
         directory = os.path.dirname(path)
         if not os.path.isdir(directory):
@@ -274,7 +273,7 @@ class Messenger(Thread):
             cls=cls,
             instance=instance,
             recipient=user,
-            message="%s\x00%s" % (settings.signature, message)).send()
+            message="%s\x00%s" % (preferences["signature"], message)).send()
 
     @exported
     def filterMessages(self, messageFilter):
