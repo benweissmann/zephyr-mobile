@@ -77,6 +77,6 @@ init = lambda:None
 
 variables = dict()
 
-getVariable = variables.__getitem__
+getVariable = lambda k: variables.get(k, None)
 setVariable = variables.__setitem__
 unsetVariable = variables.__delitem__
