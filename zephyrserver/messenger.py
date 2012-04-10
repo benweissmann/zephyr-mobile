@@ -421,10 +421,15 @@ class Messenger(Thread):
     def getInstances(self, cls, offset=0, perpage=-1):
         """ List the instances with messages in a given class.
 
-        returns:
-            [("instance", [unread_count, total_count]), ...]
+        Returns:
+            [{
+                instance: instance,
+                unread: unread_count,
+                total: total_count,
+             },
+            ]
         """
-        return [ (r["instance"], (r["unread"], r["total"])) for r in self.db.execute(
+        return self.db.execute(
             """
             SELECT instance, COUNT(*) AS total, COUNT(unread) AS unread
             FROM (SELECT cls, instance, nullif(read, 1) AS unread, timestamp FROM messages)
@@ -432,16 +437,21 @@ class Messenger(Thread):
             GROUP BY instance
             ORDER BY MAX(timestamp) DESC
             LIMIT ? OFFSET ?
-            """, (cls, perpage, offset)) ]
+            """, (cls, perpage, offset)).fetchall()
 
     @exported
     def getUnreadInstances(self, cls, offset=0, perpage=-1):
         """ List the instances with messages in a given class.
 
-        returns:
-            [("instance", [unread_count, total_count]), ...]
+        Returns:
+            [{
+                instance: instance,
+                unread: unread_count,
+                total: total_count,
+             },
+            ]
         """
-        return [ (r["instance"], (r["unread"], r["total"])) for r in self.db.execute(
+        return self.db.execute(
             """
             SELECT instance, COUNT(*) AS total, COUNT(unread) AS unread
             FROM (SELECT cls, instance, read, nullif(read, 1) AS unread, timestamp FROM messages)
@@ -449,7 +459,7 @@ class Messenger(Thread):
             GROUP BY instance
             ORDER BY MAX(timestamp) DESC
             LIMIT ? OFFSET ?
-            """, (cls, perpage, offset)) ]
+            """, (cls, perpage, offset)).fetchall()
 
 
 
@@ -458,25 +468,47 @@ class Messenger(Thread):
         """
         List the classes with messages.
         Returns:
-            (class, [unread_count, total_count], ...)
+            [{
+                cls: class,
+                unread: unread_count,
+                total: total_count,
+                starred: true if the class is starred,
+             },
+            ]
         """
-        return [ (r["cls"], (r["unread"], r["total"])) for r in self.db.execute(
+        classes = self.db.execute(
             """
             SELECT cls, COUNT(*) AS total, COUNT(unread) AS unread
             FROM (SELECT cls, nullif(read, 1) AS unread, timestamp FROM messages)
             GROUP BY cls
             ORDER BY MAX(timestamp) DESC
             LIMIT ? OFFSET ?
-            """, (perpage, offset)) ]
+            """, (perpage, offset)).fetchall()
+
+        # XXX: This is wrong. I should get all of the subscribed classes.
+
+        starred_classes = set(preferences["starred-classes"])
+        for c in classes:
+            c["starred"] = c["cls"] in starred_classes
+
+        return classes
+
 
     @exported
     def getUnreadClasses(self, offset=0, perpage=-1):
         """
         List the classes with messages.
         Returns:
-            (class, [unread_count, total_count], ...)
+            [{
+                cls: class,
+                unread: unread_count,
+                total: total_count,
+                starred: true if the class is starred,
+             },
+            ]
+
         """
-        return [ (r["cls"], (r["unread"], r["total"])) for r in self.db.execute(
+        classes = self.db.execute(
             """
             SELECT cls, COUNT(*) AS total, COUNT(unread) AS unread
             FROM (SELECT cls, read, nullif(read, 1) AS unread, timestamp FROM messages)
@@ -484,17 +516,29 @@ class Messenger(Thread):
             GROUP BY cls
             ORDER BY MAX(timestamp) DESC
             LIMIT ? OFFSET ?
-            """, (perpage, offset)) ]
+            """, (perpage, offset)).fetchall()
+
+        # I store the starred attribute separately because it is not a feature of zephyr.
+        starred_classes = set(preferences["starred-classes"])
+        for c in classes:
+            c["starred"] = c["cls"] in starred_classes
+
+        return classes
 
     @exported
     def getPersonals(self, offset=0, perpage=-1):
         """
         List the users that have sent personals.
         Returns:
-            (user, [unread_count, total_count], ...)
+            [
+                {
+                    sender: sender,
+                    unread: unread_count,
+                    total: total_count,
+                }, ...
+            ]
         """
-        # XXX: get all personal messages regardless of username.
-        return [ (r["sender"], (r["unread"], r["total"])) for r in self.db.execute(
+        return self.db.execute(
             """
             SELECT sender, COUNT(*) AS total, COUNT(unread) AS unread
             FROM (
@@ -505,7 +549,7 @@ class Messenger(Thread):
             GROUP BY sender
             ORDER BY MAX(timestamp) DESC
             LIMIT ? OFFSET ?
-            """, ("personal", "message", perpage, offset)) ]
+            """, ("personal", "message", perpage, offset)).fetchall();
 
     @exported
     def getCount(self, fid=None):
