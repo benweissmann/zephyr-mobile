@@ -9,9 +9,12 @@ import select, os
 from itertools import izip
 from functools import wraps
 from threading import Thread, RLock
-sqlite3.register_converter("BOOL", lambda v: v != "0")
-import zephyr
 from datetime import datetime
+sqlite3.register_converter("BOOL", lambda v: v != "0")
+try:
+    import zephyr
+except ImportError:
+    import test_zephyr as zephyr
 
 __all__ = ("Filter", "Messenger")
 
@@ -190,13 +193,11 @@ class Messenger(Thread):
         self._rpipe, self._wpipe = os.pipe()
 
     def run(self):
-        fd = zephyr._z.getFD()
-        while fd in select.select([fd, self._rpipe], [], [])[0]:
+        while True:
+            z = zephyr.receive(block=True)
+            if z is None:
+                return
             self.store_znotice(zephyr.receive())
-
-        # In case the file descriptor changed.
-        if fd != zephyr._z.getFD():
-            self.run()
 
     def quit(self):
         os.write(self._wpipe, "\x01")

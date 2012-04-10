@@ -2,7 +2,11 @@
 # encoding: utf-8
 from common import exported
 import settings
-import zephyr
+
+try:
+    import zephyr
+except ImportError:
+    import test_zephyr as zephyr
 
 __all__ = ("SubscriptionManager",)
 

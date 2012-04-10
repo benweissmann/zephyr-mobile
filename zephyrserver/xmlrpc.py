@@ -3,7 +3,11 @@ from subscriptions import SubscriptionManager
 from messenger import Messenger
 from datetime import datetime
 from common import exported
-import zephyr
+try:
+    import zephyr
+except ImportError:
+    print "Failed to import zephyr, using test zephyr."
+    import test_zephyr as zephyr
 
 
 __all__ = ('ZephyrXMLRPCServer',)
@@ -12,7 +16,7 @@ class ZephyrXMLRPCServer(SimpleXMLRPCServer, object):
     def __init__(self, host='localhost', port=9000):
         super(ZephyrXMLRPCServer, self).__init__((host, port), allow_none=True)
         zephyr.init()
-        self.username = zephyr._z.sender()
+        self.username = zephyr.sender()
         self.subscriptions = exported(SubscriptionManager(self.username))
         self.messenger = exported(Messenger(self.username))
 
