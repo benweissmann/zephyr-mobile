@@ -59,6 +59,9 @@ def open_or_create_db(path):
     db.commit()
     return db
 
+def gen_params(num):
+    return "(" + "?,"*(num-1) + "?)"
+
 class Filter(object):
     """
     A filter that is an or of its clauses anded with its parent (recursivly).
@@ -109,16 +112,12 @@ class Filter(object):
         return self.applyQuery(db, "SELECT *", offset, perpage).fetchall()
 
     def delete(self, db):
-        # XXX: paginate
-        #return self.applyQuery(db, "DELETE", offset, perpage).rowcount
         return db.execute("DELETE FROM messages" + self._where, self._objs).rowcount
 
     def markRead(self, db, updates):
-        # XXX: paginate
         return db.execute("UPDATE messages SET read=1" + self._where, self._objs).rowcount
 
     def markUnread(self, db, updates):
-        # XXX: paginate
         return db.execute("UPDATE messages SET read=0" + self._where, self._objs).rowcount
 
     def count(self, db, offset=0, perpage=-1):
@@ -167,12 +166,10 @@ class Filter(object):
         query_where_addendum = "timestamp < (%s)" % (subquery)
         query_where = " AND ".join(self._query_list + (query_where_addendum,))
         query = "SELECT count(*) AS offset FROM messages WHERE %s" % (query_where)
-        print query
-        print self._objs*2
         return (db.execute(query, self._objs*2).fetchone()["offset"], total)
 
     def getIDs(self, db, offset=0, perpage=-1):
-        return [i["id"] for i in self.applyQuery(db, "SELECT id FROM messages", offset, perpage)]
+        return [i["id"] for i in self.applyQuery(db, "SELECT id", offset, perpage)]
 
 
     def filterResponse(self, db, offset=0, perpage=-1):
@@ -184,8 +181,8 @@ class Filter(object):
         }
 
 class Messenger(Thread):
-    def __init__(self, username, db_path=settings.ZEPHYR_DB):
-        Thread.__init__(self) # WTF
+    def __init__(self, username, db_path=ZEPHYR_DB):
+        super(Messenger, self).__init__()
         self.db = open_or_create_db(db_path)
         self.username = username
         self.filters = {}
@@ -349,19 +346,25 @@ class Messenger(Thread):
         Deletes the given messages.
         Returns the number deleted.
         """
-        return self.db.executemany("DELETE FROM messages WHERE id=?", ((i,) for i in ids)).rowcount
+        if not ids:
+            return 0;
+        return self.db.execute("DELETE FROM messages WHERE id IN " + gen_params(len(ids)), tuple(ids)).rowcount
+
 
     @exported
     @transaction
-    def deleteFilter(self, fid):
+    def deleteFilter(self, fid, offset=0, perpage=-1):
         """
         Delete the messages that match the given filter.
         Returns the number deleted.
         """
-        return self.filters[int(fid)].delete(self.db)
+        if offset != 0 or perpage >= 0:
+            return self.delete(self.filters[int(fid)].getIDs(self.db, offset, perpage))
+        else:
+            return self.filters[int(fid)].delete(self.db)
 
     @exported
-    def markFilter(self, status, fid):
+    def markFilter(self, status, fid, offset=0, perpage=-1):
         if status == "read":
             return self.markFilterRead(fid)
         elif status == "unread":
@@ -369,15 +372,21 @@ class Messenger(Thread):
 
     @exported
     @transaction
-    def markFilterRead(self, fid):
+    def markFilterRead(self, fid, offset=0, perpage=-1):
         """ Mark all of the messages that match a filter with the given status. """
-        return self.filters[int(fid)].markRead(self.db)
+        if offset != 0 or perpage >= 0:
+            return self.markRead(self.filters[int(fid)].getIDs(self.db, offset, perpage))
+        else:
+            return self.filters[int(fid)].markRead(self.db)
 
     @exported
     @transaction
-    def markFilterUnread(self, fid):
+    def markFilterUnread(self, fid, offset=0, perpage=-1):
         """ Mark all of the messages that match a filter with the given status. """
-        return self.filters[int(fid)].markUnread(self.db)
+        if offset != 0 or perpage >= 0:
+            return self.markUnread(self.filters[int(fid)].getIDs(self.db, offset, perpage))
+        else:
+            return self.filters[int(fid)].markUnread(self.db)
 
 
     @exported
@@ -391,14 +400,16 @@ class Messenger(Thread):
     @exported
     @transaction
     def markRead(self, ids):
-        return self.db.executemany("UPDATE messages SET read=1 WHERE id=?", ((i,) for i in ids)).rowcount
+        if not ids:
+            return 0;
+        return self.db.execute("UPDATE messages SET read=1 WHERE id IN " + gen_params(len(ids)), tuple(ids)).rowcount
 
     @exported
     @transaction
     def markUnread(self, ids):
-        return self.db.executemany("UPDATE messages SET read=0 WHERE id=?", ((i,) for i in ids)).rowcount
-
-
+        if not ids:
+            return 0;
+        return self.db.execute("UPDATE messages SET read=0 WHERE id IN " + gen_params(len(ids)), tuple(ids)).rowcount
 
     @exported
     @transaction
