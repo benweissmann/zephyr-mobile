@@ -1,46 +1,41 @@
 import os
 import pwd
-import json
+try:
+    from zephyr import getVariable, setVariable
+except:
+    from test_zephyr import getVariable, setVariable
 
-__all__ = ("ZEPHYR_DB", "CONFIG_FILE", "ZSUBS", "preferences")
+__all__ = ("ZEPHYR_DB", "ZSUBS", "get", "set")
 
 CONFIG_FILE = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expandvars("$HOME/.config")), "zephyr-server.ini")
 ZEPHYR_DB = os.path.join(os.environ.get("XDG_DATA_HOME", os.path.expandvars("$HOME/.local/share")), "zephyr-server/zephyrs.db")
 ZSUBS = os.path.join(os.environ.get("HOME"), ".zephyr.subs")
 
+def string_to_set(value):
+    return set(value.split(','))
 
-class Preferences(dict):
-    DEFAULTS = {
-        "signature": pwd.getpwuid(os.getuid()).pw_gecos.split(',', 1)[0],
-        "starred-classes": [],
-        "hidden-classes": ["message"]
-    }
-    _obj = None
-    def __init__(self, config_file):
-        self.config_file = config_file
-        self.load()
-        Preferences._obj = self
+def set_to_string(value):
+    return ",".join(value)
 
-    def save(self):
-        if not os.path.exists(self.config_file):
-            directory = os.path.dirname(self.config_file)
-            if not os.path.isdir(directory):
-                os.makedirs(directory)
+DEFAULTS = {
+    "signature": pwd.getpwuid(os.getuid()).pw_gecos.split(',', 1)[0],
+    "starred-classes": [],
+    "hidden-classes": ["message"]
+}
+TRANSFORMS = {
+    "hidden-classes": (string_to_set, set_to_string),
+    "starred-classes": (string_to_set, set_to_string)
+}
 
-        with open(self.config_file, "w") as f:
-            json.dump(self, f, indent=4)
+def get(var, default=None):
+    value = getVariable(var)
+    if value is None:
+        return default if default is not None else DEFAULTS.get(var, None)
+    if var in TRANSFORMS:
+        value = TRANSFORMS[var][0](value)
+    return value
 
-    def load(self):
-        self.clear()
-        self.update(self.DEFAULTS)
-        try:
-            with open(self.config_file) as f:
-                self.update(json.load(f))
-        except IOError:
-            self.save()
-
-    def __setitem__(self, item, value):
-        super(self, Preferences).__setitem__(self, item, value)
-        self.save()
-
-preferences = Preferences(CONFIG_FILE)
+def set(var, value):
+    if var in TRANSFORMS:
+        value = TRANSFORMS[var][1](value)
+    setVariable(var, str(value))

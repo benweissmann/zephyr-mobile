@@ -3,7 +3,7 @@
 import logging
 logging.basicConfig(level=logging.DEBUG)
 from common import return_status, exported
-from settings import ZEPHYR_DB, preferences
+import settings
 import sqlite3
 from itertools import izip
 from functools import wraps
@@ -184,7 +184,7 @@ class Filter(object):
         }
 
 class Messenger(Thread):
-    def __init__(self, username, db_path=ZEPHYR_DB):
+    def __init__(self, username, db_path=settings.ZEPHYR_DB):
         super(Messenger, self).__init__()
         self.db = open_or_create_db(db_path)
         self.username = username
@@ -272,7 +272,7 @@ class Messenger(Thread):
             cls=cls,
             instance=instance,
             recipient=user,
-            message="%s\x00%s" % (preferences["signature"], message)).send()
+            message="%s\x00%s" % (settings.get("signature"), message)).send()
 
     @exported
     def filterMessages(self, messageFilter):
@@ -426,8 +426,8 @@ class Messenger(Thread):
 
         # XXX: This should be done with plugins and callbacks
 
-        starred_classes = set(preferences["starred-classes"])
-        hidden_classes = set(preferences["hidden-classes"])
+        starred_classes = settings.get("starred-classes")
+        hidden_classes = settings.get("hidden-classes")
 
         def set_starred(item):
             item["starred"] = item["cls"] in starred_classes

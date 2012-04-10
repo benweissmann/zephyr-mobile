@@ -2,7 +2,7 @@ from collections import deque
 from threading import Condition
 from time import time
 
-__all__ = ("sender", "receive", "interrupt", "ZNotice", "realm", "Subscriptions", "init")
+__all__ = ("sender", "receive", "interrupt", "ZNotice", "realm", "Subscriptions", "init", "getVariable", "setVariable", "unsetVariable")
 class SimpleBlockingQueue(object):
     def __init__(self):
         self.items = deque()
@@ -74,3 +74,9 @@ class ZNotice(object):
 
 Subscriptions = set
 init = lambda:None
+
+variables = dict()
+
+getVariable = variables.__getitem__
+setVariable = variables.__setitem__
+unsetVariable = variables.__delitem__

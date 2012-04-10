@@ -3,6 +3,7 @@ from subscriptions import SubscriptionManager
 from messenger import Messenger
 from datetime import datetime
 from common import exported
+import preferences
 try:
     import zephyr
 except ImportError:
@@ -17,6 +18,7 @@ class ZephyrXMLRPCServer(SimpleXMLRPCServer, object):
         super(ZephyrXMLRPCServer, self).__init__((host, port), allow_none=True)
         zephyr.init()
         self.username = zephyr.sender()
+        self.preferences = exported(preferences.Preferences())
         self.subscriptions = exported(SubscriptionManager(self.username))
         self.messenger = exported(Messenger(self.username))
 
@@ -50,6 +52,7 @@ class ZephyrXMLRPCServer(SimpleXMLRPCServer, object):
         finally:
             print "exiting..."
             self.messenger.quit()
+
 
 if __name__ == '__main__':
     ZephyrXMLRPCServer().serve_forever()
