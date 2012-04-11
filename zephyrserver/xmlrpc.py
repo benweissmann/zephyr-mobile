@@ -4,6 +4,7 @@ from messenger import Messenger
 from datetime import datetime
 from common import exported
 import preferences
+import sys
 try:
     import zephyr
 except ImportError:
@@ -13,8 +14,11 @@ except ImportError:
 
 __all__ = ('ZephyrXMLRPCServer',)
 
+DEFAULT_PORT = 9000
+DEFAULT_HOST = "localhost"
+
 class ZephyrXMLRPCServer(SimpleXMLRPCServer, object):
-    def __init__(self, host='localhost', port=9000):
+    def __init__(self, host=DEFAULT_HOST, port=DEFAULT_PORT):
         super(ZephyrXMLRPCServer, self).__init__((host, port), allow_none=True)
         zephyr.init()
         self.username = zephyr.sender()
@@ -55,4 +59,12 @@ class ZephyrXMLRPCServer(SimpleXMLRPCServer, object):
 
 
 if __name__ == '__main__':
-    ZephyrXMLRPCServer().serve_forever()
+    if len(sys.argv) > 1:
+        host = sys.argv[1]
+        if len(sys.argv) > 2:
+            port = int(sys.argv[2] or DEFAULT_PORT)
+        else:
+            port = DEFAULT_PORT
+    else:
+        host = DEFAULT_HOST
+    ZephyrXMLRPCServer(host, port).serve_forever()
