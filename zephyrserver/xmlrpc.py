@@ -69,6 +69,10 @@ class ZephyrXMLRPCServer(SimpleXMLRPCServer, object):
     def getUser(self):
         return self.username
 
+    # Does nothing but return true. Used to check auth/version...
+    @exported
+    def ping(self):
+        return True
 
     def serve_forever(self):
         self.start_time = time()
