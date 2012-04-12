@@ -1,10 +1,11 @@
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 from subscriptions import SubscriptionManager
 from messenger import Messenger
-from datetime import datetime
-from common import exported
+from time import time
+from common import exported, assertCompatable, assertAuthenticated
 import preferences
 import sys
+from . import VERSION
 try:
     import zephyr
 except ImportError:
@@ -26,19 +27,42 @@ class ZephyrXMLRPCServer(SimpleXMLRPCServer, object):
         self.subscriptions = exported(SubscriptionManager(self.username))
         self.messenger = exported(Messenger(self.username))
 
+    def authenticate(self, username, password):
+        # Call kinit. if true: set token
+        return True #XXX
+
     def _dispatch(self, method, params):
+        # Need to pop
+        params = list(params)
+        if method == "getServerVersion":
+            return VERSION
+        else:
+            try:
+                assertCompatable(params.pop(0))
+            except IndexError:
+                raise TypeError("Minimum version unspecified.")
+
+        if method == "authenticate":
+            return self.authenticate(*params)
+        else:
+            try:
+                print params
+                assertAuthenticated(params.pop(0))
+            except IndexError:
+                raise TypeError("No authentication token provided.")
+
         obj = self
         for i in method.split('.'):
             obj = getattr(obj, i)
             if not getattr(obj, "_export", False):
                 raise AttributeError("Method not supported.")
 
-        return obj(*params)
+        return obj(*params[2:])
 
     @exported
     def uptime(self):
         """Returns the uptime in seconds."""
-        return (datetime.now() - self.start_time).total_seconds()
+        return time() - self.start_time
 
 
     @exported
@@ -51,7 +75,7 @@ class ZephyrXMLRPCServer(SimpleXMLRPCServer, object):
         return True
 
     def serve_forever(self):
-        self.start_time = datetime.now()
+        self.start_time = time()
         self.messenger.start()
         try:
             super(ZephyrXMLRPCServer, self).serve_forever()
