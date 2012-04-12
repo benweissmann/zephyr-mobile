@@ -440,7 +440,8 @@ class Messenger(Thread):
             return item
 
 
-        return [set_starred(c) for c in classes if c["cls"] not in hidden_classes]
+        starred = [set_starred(c) for c in classes if c["cls"] not in hidden_classes]
+        return sorted(starred, key=lambda item: not item["starred"])
 
     @exported
     def getInstances(self, cls, offset=0, perpage=-1):
