@@ -5,7 +5,7 @@ logging.basicConfig(level=logging.DEBUG)
 from common import return_status, exported
 import settings
 import sqlite3
-from itertools import izip
+from itertools import izip, chain
 from functools import wraps
 from threading import Thread, RLock
 from time import time
@@ -66,12 +66,32 @@ def open_or_create_db(path):
 def gen_params(num):
     return "(" + "?,"*(num-1) + "?)"
 
+# Returns the input
+ret = lambda x:x
+
+
 class Filter(object):
     """
     A filter that is an or of its clauses anded with its parent (recursivly).
     """
 
-    def __init__(self, cls=None, instance=None, user=None, sender=None, read=None, message=None, after=None, before=None):
+    FIELDS = {
+        "cls": (ret, "cls=?"),
+        "instance": (ret,"instance=?"),
+        "user": (ret, "user=?"),
+        "sender": (ret, "sender=?"),
+        "read": (int, "read=?"),
+        "message": (lambda m: "%" + m + "%", "message LIKE ?"),
+        "after": (ret, "timestamp > ?"),
+        "before": (ret, "timestamp < ?"),
+    }
+
+    @staticmethod
+    def parseDNF(dnf):
+        return " OR ".join(" AND ".join(c) for c in dnf)
+
+    #def __init__(self, cls=None, instance=None, user=None, sender=None, read=None, message=None, after=None, before=None):
+    def __init__(self, *clauses):
         """Initialize a new Filter
         Arguments:
             f - a filter {"field": "value", ... }
@@ -82,26 +102,26 @@ class Filter(object):
                 value: search-value,
             }
         """
-        f = tuple([ (i,s)  for i,s in (
-            (cls, "cls=?"),
-            (instance, "instance=?"),
-            (user, "user=?"),
-            (sender, "sender=?"),
-            (int(read) if read is not None else None, "read=?"),
-            (("%" + message + "%") if message is not None else None, 'message LIKE ?'),
-            (after, "timestamp > ?"),
-            (before, "timestamp < ?"),
-        ) if i is not None])
-        self.fid = hash(f)
+        # Quick and easy
+        self.fid = hash(frozenset(frozenset(clause.iteritems()) for clause in clauses))
 
-
-        if f:
-            self._objs, self._query_list = zip(*f)
-            self._where = " WHERE " + " AND ".join(self._query_list)
-        else:
-            self._query_list = ()
+        if not clauses or {} in clauses:
+            self.fid = hash(frozenset())
             self._objs = ()
+            self._query_list = ()
             self._where = ""
+            self._dnf = None
+        else:
+            self._objs, self._query_list = izip(*(
+                izip(*(
+                    (t(v), l) for ((t, l), v) in (
+                        (self.FIELDS[f], v) for f, v in clause.iteritems())
+                )) for clause in clauses
+            ))
+            self._objs = sum(self._objs, tuple())
+            self._dnf = self.parseDNF(self._query_list)
+            self._where = " WHERE " + self._dnf
+
 
     def __hash__(self):
         return self.fid
@@ -164,11 +184,16 @@ class Filter(object):
         unread, total = self.counts(db)
         if unread == 0:
             return (-1, total)
+        if self._dnf:
+            subquery_where = "(%s) AND read=0" % self._dnf
+        else:
+            subquery_where = "read=0"
+        subquery = "SELECT timestamp FROM messages WHERE (%s) AND read=0 ORDER BY timestamp LIMIT 1" % (subquery_where)
 
-        subquery_where = " AND ".join(self._query_list + ("read=0",))
-        subquery = "SELECT timestamp FROM messages WHERE %s ORDER BY timestamp LIMIT 1" % (subquery_where)
-        query_where_addendum = "timestamp < (%s)" % (subquery)
-        query_where = " AND ".join(self._query_list + (query_where_addendum,))
+        if self._dnf:
+            query_where = "(%s) AND timestamp < (%s)" % (self._dnf, subquery)
+        else:
+            query_where = "timestamp < (%s)" % subquery
         query = "SELECT count(*) AS offset FROM messages WHERE %s" % (query_where)
         return (db.execute(query, self._objs*2).fetchone()["offset"], total)
 
@@ -281,11 +306,11 @@ class Messenger(Thread):
             self.store_znotice(znotice)
 
     @exported
-    def filterMessages(self, messageFilter):
+    def filterMessages(self, *messageFilters):
         """
         Filters messages.
         Arguments:
-            messageFilter - a filter in the form of {"field": "value"}
+            messageFilters - a list of filters in the form of {"field": "value"}
             Valid fields are:
                 sender, class, instance, user, message, before, after, read
 
@@ -298,7 +323,7 @@ class Messenger(Thread):
         # Get the messages that match the filter
         >>> messenger.get(fid)
         """
-        f = Filter(**messageFilter)
+        f = Filter(*messageFilters)
         self.filters[f.fid] = f
         return str(f.fid)
 
