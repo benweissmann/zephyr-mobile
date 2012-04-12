@@ -17,5 +17,3 @@ class AuthenticationRequired(Exception):
     """
     Raised if the clients authentication token has expired.
     """
-
-
