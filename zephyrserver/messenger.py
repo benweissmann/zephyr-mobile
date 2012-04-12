@@ -117,10 +117,10 @@ class Filter(object):
     def delete(self, db):
         return db.execute("DELETE FROM messages" + self._where, self._objs).rowcount
 
-    def markRead(self, db, updates):
+    def markRead(self, db):
         return db.execute("UPDATE messages SET read=1" + self._where, self._objs).rowcount
 
-    def markUnread(self, db, updates):
+    def markUnread(self, db):
         return db.execute("UPDATE messages SET read=0" + self._where, self._objs).rowcount
 
     def count(self, db, offset=0, perpage=-1):
