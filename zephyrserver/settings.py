@@ -20,8 +20,8 @@ def set_to_string(value):
 
 DEFAULTS = {
     "signature": pwd.getpwuid(os.getuid()).pw_gecos.split(',', 1)[0],
-    "starred-classes": [],
-    "hidden-classes": []
+    "starred-classes": set(),
+    "hidden-classes": set()
 }
 TRANSFORMS = {
     "hidden-classes": (string_to_set, set_to_string),

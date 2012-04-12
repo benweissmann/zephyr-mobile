@@ -8,6 +8,7 @@ import sqlite3
 from itertools import izip
 from functools import wraps
 from threading import Thread, RLock
+from time import time
 from datetime import datetime
 import os
 sqlite3.register_converter("BOOL", lambda v: v != "0")
@@ -246,7 +247,7 @@ class Messenger(Thread):
                 znotice.cls,
                 znotice.instance,
                 znotice.recipient or None,
-                datetime.fromtimestamp(znotice.time)
+                datetime.fromtimestamp(znotice.time or time())
             )
         )
 
@@ -268,11 +269,16 @@ class Messenger(Thread):
         # Send a message to bsw
         >>> messenger.send("This is a really short message.", "message", "personal", "bsw")
         """
-        zephyr.ZNotice(
+        znotice = zephyr.ZNotice(
             cls=cls,
             instance=instance,
             recipient=user,
-            message="%s\x00%s" % (settings.getVariable("signature"), message)).send()
+            message="%s\x00%s" % (settings.getVariable("signature"), message))
+
+        znotice.send()
+
+        if user:
+            self.store_znotice(znotice)
 
     @exported
     def filterMessages(self, messageFilter):
@@ -434,7 +440,8 @@ class Messenger(Thread):
             return item
 
 
-        return [set_starred(c) for c in classes if c["cls"] not in hidden_classes]
+        starred = [set_starred(c) for c in classes if c["cls"] not in hidden_classes]
+        return sorted(starred, key=lambda item: not item["starred"])
 
     @exported
     def getInstances(self, cls, offset=0, perpage=-1):
