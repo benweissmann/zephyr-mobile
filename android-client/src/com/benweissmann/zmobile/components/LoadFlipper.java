@@ -8,6 +8,7 @@ import com.benweissmann.zmobile.R;
 public class LoadFlipper {
     private static final int VIEW_FLIPPER_LOADING_INDEX = 0;
     private static final int VIEW_FLIPPER_CONTENT_INDEX = 1;
+    private static final int VIEW_FLIPPER_ERROR_INDEX = 2;
     
     public static void flipToLoader(Activity activity) {
         flipTo(VIEW_FLIPPER_LOADING_INDEX, activity);
@@ -15,6 +16,10 @@ public class LoadFlipper {
     
     public static void flipToContent(Activity activity) {
         flipTo(VIEW_FLIPPER_CONTENT_INDEX, activity);
+    }
+    
+    public static void flipToError(Activity activity) {
+        flipTo(VIEW_FLIPPER_ERROR_INDEX, activity);
     }
     
     private static void flipTo(final int index, final Activity activity) {

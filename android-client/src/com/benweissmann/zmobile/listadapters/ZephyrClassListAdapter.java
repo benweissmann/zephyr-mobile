@@ -23,9 +23,11 @@ public class ZephyrClassListAdapter extends ZephyrgramSetListAdapter<ZephyrClass
         
         if(cls.isStarred()) {
             v.findViewById(R.id.class_star_off).setVisibility(View.GONE);
+            v.findViewById(R.id.class_star_on).setVisibility(View.VISIBLE);
         }
         else {
             v.findViewById(R.id.class_star_on).setVisibility(View.GONE);
+            v.findViewById(R.id.class_star_off).setVisibility(View.VISIBLE);
         }
         
         return v;

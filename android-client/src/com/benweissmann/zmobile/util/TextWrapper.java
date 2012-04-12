@@ -107,7 +107,7 @@ public class TextWrapper {
         wrappedLine.append(str.substring(offset));
 
         return wrappedLine.toString();
-    }
+    } 
     
     public static String unwrap(String wrapped) {
         List<String> lines = new ArrayList<String>(Arrays.asList(wrapped.split("\n", -1)));

@@ -38,7 +38,7 @@ public class ZephyrService extends Service {
     
     private static boolean isRunning = false; 
     private final IBinder binder = new ZephyrBinder();
-    private XMLRPCClient xmlRpcClient;
+    private XMLRPCHelper xmlRpcClient;
     
     /**
      * Class for clients to access. Because we know this service always runs in
@@ -558,8 +558,9 @@ public class ZephyrService extends Service {
     public void onCreate() {
         ZephyrService.isRunning = true;
         try {
-            this.xmlRpcClient = new XMLRPCClient(new URL(XML_RPC_SERVER_URL),
-                                                 XMLRPCClient.FLAGS_NIL);
+            XMLRPCClient client = new XMLRPCClient(new URL(XML_RPC_SERVER_URL),
+                                                   XMLRPCClient.FLAGS_NIL);
+            this.xmlRpcClient = new XMLRPCHelper(client);
         }
         catch (MalformedURLException e) {
             Log.e("ZephyrService", "Failed to create URL for XML RPC server", e);

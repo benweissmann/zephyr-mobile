@@ -48,11 +48,11 @@ public final class Zephyrgram {
     }
     
     public boolean isToMe() {
-        return (this.user != null) && this.user.equals(ZephyrService.USER_NAME);
+        return (this.getUser() != null) && this.getUser().equals(ZephyrService.USER_NAME);
     }
     
     public boolean isFromMe() {
-        return this.sender.equals(ZephyrService.USER_NAME);
+        return this.getSender().equals(ZephyrService.USER_NAME);
     }
     
     public String getCls() {
@@ -64,6 +64,9 @@ public final class Zephyrgram {
     }
     
     public String getSender() {
+        if(this.sender == null) {
+            return null;
+        }
         return DomainStripper.stripDomain(this.sender);
     }
 
@@ -87,6 +90,9 @@ public final class Zephyrgram {
     }
 
     public String getUser() {
+        if(this.user == null) {
+            return null;
+        }
         return DomainStripper.stripDomain(this.user);
     }
     
