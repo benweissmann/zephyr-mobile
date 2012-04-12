@@ -41,17 +41,18 @@ public class ZephyrgramListAdapter extends ArrayAdapter<Zephyrgram> {
             TextView toMeLabel = (TextView) v.findViewById(R.id.personal_zephyr_to_me_prefix_text);
             TextView fromMeLabel = (TextView) v.findViewById(R.id.personal_zephyr_from_me_prefix_text);
             
+            TextView senderView = (TextView) v.findViewById(R.id.zephyrgram_personal_sender);
+            
             if(z.isFromMe()) {
                 toMeLabel.setVisibility(View.GONE);
                 fromMeLabel.setVisibility(View.VISIBLE);
+                senderView.setText(z.getUser());
             }
             else {
                 toMeLabel.setVisibility(View.VISIBLE);
                 fromMeLabel.setVisibility(View.GONE);
+                senderView.setText(z.getSender());
             }
-            
-            TextView senderView = (TextView) v.findViewById(R.id.zephyrgram_personal_sender);
-            senderView.setText(z.getSender());
         }
         else {
             tripletLayout.setVisibility(View.VISIBLE);

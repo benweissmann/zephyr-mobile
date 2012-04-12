@@ -12,6 +12,7 @@ import com.benweissmann.zmobile.service.ZephyrServiceBridge;
 import com.benweissmann.zmobile.service.ZephyrService.ZephyrBinder;
 import com.benweissmann.zmobile.service.callbacks.BinderCallback;
 import com.benweissmann.zmobile.service.callbacks.ZephyrCallback;
+import com.benweissmann.zmobile.service.callbacks.ZephyrStatusCallback;
 import com.benweissmann.zmobile.service.objects.Query;
 import com.benweissmann.zmobile.service.objects.Zephyrgram;
 import com.benweissmann.zmobile.service.objects.ZephyrgramResultSet;
@@ -23,14 +24,17 @@ import android.content.res.Resources;
 import android.os.Bundle;
 import android.util.Log;
 import android.util.TypedValue;
+import android.view.ContextMenu;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ContextMenu.ContextMenuInfo;
 import android.widget.AbsListView;
 import android.widget.AbsListView.OnScrollListener;
+import android.widget.AdapterView.AdapterContextMenuInfo;
 import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.ProgressBar;
@@ -78,7 +82,7 @@ public class ZephyrgramActivity extends Activity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.zephyrgrams_list_menu, menu);
+        inflater.inflate(R.menu.zephyrgram_list_menu, menu);
         return true;
     }
     
@@ -141,8 +145,7 @@ public class ZephyrgramActivity extends Activity {
                                 ZephyrgramActivity.this.startResultSet = result;
                                 ZephyrgramActivity.this.endResultSet = result;
 
-                                ZephyrgramActivity.this.initList(result
-                                        .getZephyrgrams());
+                                ZephyrgramActivity.this.initList(result);
                                 
                                 onComplete.run();
                             }
@@ -159,18 +162,21 @@ public class ZephyrgramActivity extends Activity {
         });
     }
     
-    private void initList(final List<Zephyrgram> initialZephyrgrams) {
+    private void initList(final ZephyrgramResultSet resultSet) {
         this.runOnUiThread(new Runnable() {
             public void run() {
+                List<Zephyrgram> initialZephyrgrams = resultSet.getZephyrgrams();
+                
                 ListView listView = (ListView) findViewById(R.id.list_view);
+                registerForContextMenu(listView);
                 
                 LayoutInflater vi = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
                 
                 // add next page
-                listView.addFooterView(vi.inflate(R.layout.next_zephyrgrams_list_item, null));
+                listView.addFooterView(vi.inflate(R.layout.next_zephyrgrams_list_item, null, false));
                 
                 // add prev page
-                listView.addHeaderView(vi.inflate(R.layout.prev_zephyrgrams_list_item, null));
+                listView.addHeaderView(vi.inflate(R.layout.prev_zephyrgrams_list_item, null, false));
                 
                 zephyrgrams = new ArrayList<Zephyrgram>(initialZephyrgrams);
                 
@@ -203,7 +209,7 @@ public class ZephyrgramActivity extends Activity {
                             getNextPage();
                         }
                         else {
-                            ZephyrgramActivity.this.onItemClick(zephyrgrams.get(position-1));
+                            ZephyrgramActivity.this.replyTo(zephyrgrams.get(position-1));
                         }
                     }
                 });
@@ -219,6 +225,7 @@ public class ZephyrgramActivity extends Activity {
                             }
                             autoloadNext = true;
                             autoloadPrev = false;
+                            atEnd = false;
                         }
                         else if(firstVisibleItem + visibleItemCount >= totalItemCount) {
                             if(autoloadNext) {
@@ -226,10 +233,12 @@ public class ZephyrgramActivity extends Activity {
                             }
                             autoloadNext = false;
                             autoloadPrev = true;
+                            atEnd = true;
                         }
                         else {
                             autoloadNext = true;
                             autoloadPrev = true;
+                            atEnd = false;
                         }
                         
                     }
@@ -237,6 +246,8 @@ public class ZephyrgramActivity extends Activity {
                     public void onScrollStateChanged(AbsListView view, int scrollState) {
                     }
                 });
+                
+                markRead(resultSet);
                 
                 LoadFlipper.flipToContent(ZephyrgramActivity.this);
                 
@@ -337,6 +348,8 @@ public class ZephyrgramActivity extends Activity {
                     atEnd = true;
                 }
                 
+                markRead(resultSet);
+                
                 ZephyrgramActivity.this.fetching = false;
                 
                 ProgressBar spinner = (ProgressBar) findViewById(R.id.next_zephyrgrams_spinner);
@@ -367,6 +380,8 @@ public class ZephyrgramActivity extends Activity {
                     toast.show();
                 }
                 
+                markRead(resultSet);
+                
                 ZephyrgramActivity.this.fetching = false;
                 
                 ProgressBar spinner = (ProgressBar) findViewById(R.id.prev_zephyrgrams_spinner);
@@ -379,6 +394,43 @@ public class ZephyrgramActivity extends Activity {
 
     }
     
+    private void markRead(final ZephyrgramResultSet resultSet) {
+        ZephyrServiceBridge.getBinder(this, new BinderCallback() {
+            public void run(ZephyrBinder binder, Runnable onComplete) {
+                binder.markRead(resultSet, new ZephyrStatusCallback() {
+                    
+                    public void onSuccess() {
+                        Log.i("ZephyrgramActivity", "Marked read");
+                    }
+                    
+                    public void onFailure() {
+                        onMarkReadFail();
+                    }
+                    
+                    public void onError(Throwable e) {
+                        onMarkReadFail();
+                    }
+                });
+                
+                onComplete.run();
+            }
+        });
+    }
+    
+    private void onMarkReadFail() {
+        runOnUiThread(new Runnable() {
+
+            public void run() {
+                CharSequence text = getString(R.string.mark_read_error);
+                int duration = Toast.LENGTH_SHORT;
+                Toast toast = Toast.makeText(ZephyrgramActivity.this, text, duration);
+                toast.setGravity(Gravity.BOTTOM|Gravity.CENTER, 0, 0);
+                toast.show();
+            }
+            
+        });
+    }
+    
     private List<Breadcrumb> getBreadcrumbs() {
         List<Breadcrumb> breadcrumbs = new ArrayList<Breadcrumb>();
         
@@ -388,8 +440,9 @@ public class ZephyrgramActivity extends Activity {
         }
         else if(this.query.getCls().equals(Zephyrgram.PERSONALS_CLASS)) {
             // we're in Home -> Personals
+            Intent personalsIntent = new Intent(this, PersonalsListActivity.class);
             breadcrumbs.add(new Breadcrumb(getString(R.string.personal_label),
-                                               PersonalsListActivity.class));
+                                           personalsIntent));
             
             if(this.query.getSender() == null) {
                 // we're in Home -> Personals -> All
@@ -402,8 +455,10 @@ public class ZephyrgramActivity extends Activity {
         }
         else {
             // we're in Home -> <class>
-            breadcrumbs.add(new Breadcrumb(this.query.getCls(), InstanceListActivity.class));
-            
+            Intent classIntent = new Intent(this, InstanceListActivity.class);
+            classIntent.putExtra(InstanceListActivity.ZEPHYR_CLASS_EXTRA, this.query.getCls());
+            breadcrumbs.add(new Breadcrumb(this.query.getCls(), classIntent));
+             
             if(this.query.getInstance() == null) {
                 // we're in Home -> <class> -> All
                 breadcrumbs.add(new Breadcrumb(getString(R.string.all_label), null));
@@ -424,13 +479,29 @@ public class ZephyrgramActivity extends Activity {
                                                     r.getDisplayMetrics()));
     }
     
-    private void onItemClick(Zephyrgram z) {
+    private void replyTo(Zephyrgram z) {
+        this.replyTo(z, false);
+    }
+    
+    private void replyTo(Zephyrgram z, boolean forcePersonal) {
         Intent intent = new Intent(this, ComposeActivity.class);
             
-        if(z.isPersonal()) {
+        if(forcePersonal || z.isPersonal()) {
+            // The logic of who to send a personal to is a bit complicated.
+            // Here's who we send a personal to. Note that user=null
+            // indicates it was sent to class
+            //
+            // Sender | User  || send to:
+            // --------------------------
+            // ME     | other || other
+            // other  | ME    || other
+            // ME     | ME    || ME
+            // ME     | null  || ME
+            // other  | null  || other
+            
             intent.putExtra(ComposeActivity.SELECT_PERSONAL_EXTRA, true);
             
-            if(z.isFromMe()) {
+            if(z.isFromMe() && (z.getUser() != null)) {
                 intent.putExtra(ComposeActivity.PERSONAL_TO_EXTRA, z.getUser());
             }
             else {
@@ -444,6 +515,66 @@ public class ZephyrgramActivity extends Activity {
         }
         
             
+        startActivityForResult(intent, 0);
+    }
+    
+    @Override
+    public void onCreateContextMenu(ContextMenu menu, View v,
+                                    ContextMenuInfo menuInfo) {
+        super.onCreateContextMenu(menu, v, menuInfo);
+        
+        MenuInflater inflater = getMenuInflater();
+        AdapterContextMenuInfo info = (AdapterContextMenuInfo) menuInfo;
+        
+        if((info.position == 0) || (info.position == adapter.getCount()+1)) {
+            Log.w("ZephyrgramActivity", "Got onCreateContextMenu for a header/footer. This shouldn't happen");
+        }
+        else {
+            Zephyrgram z = this.adapter.getItem(info.position - 1);
+            if(z.isPersonal()) {
+                inflater.inflate(R.menu.zephyrgram_list_personal_context_menu, menu);
+            }
+            else {
+                inflater.inflate(R.menu.zephyrgram_list_context_menu, menu);   
+            }
+        }
+    }
+    
+    @Override
+    public boolean onContextItemSelected(MenuItem item) {
+        AdapterContextMenuInfo info = (AdapterContextMenuInfo) item.getMenuInfo();
+        Zephyrgram z = this.adapter.getItem(info.position - 1);
+        
+        switch(item.getItemId()) {
+        case R.id.zephyrgram_list_reply_class:
+            this.replyTo(z);
+            return true;
+        case R.id.zephyrgram_list_reply_personal:
+            this.replyTo(z, true);
+            return true;
+        case R.id.zephyrgram_list_show_class:
+            this.goToClass(z.getCls());
+            return true;
+        case R.id.zephyrgram_list_show_instance:
+            this.goToZephyrgrams(new Query().cls(z.getCls()).instance(z.getInstance()));
+            return true;
+        case R.id.zephyrgram_list_show_personals:
+            this.goToZephyrgrams(new Query().cls(Zephyrgram.PERSONALS_CLASS).sender(z.getSender()));
+            return true;
+        default:
+            return super.onContextItemSelected(item);
+        }
+    }
+    
+    private void goToZephyrgrams(Query q) {
+        Intent intent = new Intent(this, ZephyrgramActivity.class);
+        intent.putExtra(ZephyrgramActivity.QUERY_EXTRA, q);
+        startActivityForResult(intent, 0);
+    }
+    
+    private void goToClass(String cls) {
+        Intent intent = new Intent(this, InstanceListActivity.class);
+        intent.putExtra(InstanceListActivity.ZEPHYR_CLASS_EXTRA, cls);
         startActivityForResult(intent, 0);
     }
 }

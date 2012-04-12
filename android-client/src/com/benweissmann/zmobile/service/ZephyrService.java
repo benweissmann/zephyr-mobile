@@ -16,6 +16,7 @@ import com.benweissmann.zmobile.service.objects.ZephyrInstance;
 import com.benweissmann.zmobile.service.objects.ZephyrPersonals;
 import com.benweissmann.zmobile.service.objects.ZephyrgramResultSet;
 import com.benweissmann.zmobile.service.objects.Zephyrgram;
+import com.benweissmann.zmobile.util.TextWrapper;
 
 import de.timroes.axmlrpc.XMLRPCCallback;
 import de.timroes.axmlrpc.XMLRPCClient;
@@ -28,12 +29,14 @@ import android.os.IBinder;
 import android.util.Log;
 
 public class ZephyrService extends Service {
-    public static final String XML_RPC_SERVER_URL = "http://bsw.mit.edu:9000";
+    // When in the emulator, 10.0.2.2 is the host machine
+    public static final String XML_RPC_SERVER_URL = "http://linerva.mit.edu:12321";
     public static final int ZEPHYRGRAMS_PER_PAGE = 15;
     
-    public static final String USER_NAME = "ME";
+    public static final String USER_NAME = "bsw";
+    public static final String HOME_DOMAIN = "ATHENA.MIT.EDU";
     
-    private static boolean isRunning = false;
+    private static boolean isRunning = false; 
     private final IBinder binder = new ZephyrBinder();
     private XMLRPCClient xmlRpcClient;
     
@@ -67,7 +70,7 @@ public class ZephyrService extends Service {
                 }
             };
             
-            String message = zephyrgram.getBody();
+            String message = TextWrapper.wrap(zephyrgram.getBody());
             String cls = zephyrgram.getCls();
             String instance = zephyrgram.getInstance();
             String user = zephyrgram.getUser();
@@ -93,14 +96,15 @@ public class ZephyrService extends Service {
                         ZephyrClass[] classes = new ZephyrClass[length];
                         
                         for (int i = 0; i < length; i++) {
-                            Object[] classObj = (Object[]) classObjs[i];
-                            String name = (String) classObj[0];
-                            Object[] counts = (Object[]) classObj[1];
-                            int unreadCount = (Integer) counts[0];
-                            int totalCount = (Integer) counts[1];
+                            @SuppressWarnings("unchecked")
+                            Map<String, Object> classObj = (Map<String, Object>) classObjs[i];
+                            String name = (String) classObj.get("cls");
+                            int unreadCount = (Integer) classObj.get("unread");
+                            int totalCount = (Integer) classObj.get("total");
+                            boolean starred = (Boolean) classObj.get("starred");
                             
                             classes[i] = new ZephyrClass(name, unreadCount,
-                                                         totalCount);
+                                                         totalCount, starred);
                         }
                         
                         callback.run(classes);
@@ -138,11 +142,11 @@ public class ZephyrService extends Service {
                         ZephyrInstance[] instances = new ZephyrInstance[length];
                         
                         for (int i = 0; i < length; i++) {
-                            Object[] instanceObj = (Object[]) instanceObjs[i];
-                            String name = (String) instanceObj[0];
-                            Object[] counts = (Object[]) instanceObj[1];
-                            int unreadCount = (Integer) counts[0];
-                            int totalCount = (Integer) counts[1];
+                            @SuppressWarnings("unchecked")
+                            Map<String, Object> instanceObj = (Map<String, Object>) instanceObjs[i];
+                            String name = (String) instanceObj.get("instance");
+                            int unreadCount = (Integer) instanceObj.get("unread");
+                            int totalCount = (Integer) instanceObj.get("total");
                             
                             instances[i] = new ZephyrInstance(cls, name,
                                                               unreadCount,
@@ -183,11 +187,11 @@ public class ZephyrService extends Service {
                         ZephyrPersonals[] personals = new ZephyrPersonals[length];
                         
                         for (int i = 0; i < length; i++) {
-                            Object[] personalsObj = (Object[]) personalsObjs[i];
-                            String sender = (String) personalsObj[0];
-                            Object[] counts = (Object[]) personalsObj[1];
-                            int unreadCount = (Integer) counts[0];
-                            int totalCount = (Integer) counts[1];
+                            @SuppressWarnings("unchecked")
+                            Map<String, Object> personalsObj = (Map<String, Object>) personalsObjs[i];
+                            String sender = (String) personalsObj.get("sender");
+                            int unreadCount = (Integer) personalsObj.get("unread");
+                            int totalCount = (Integer) personalsObj.get("total");
                             
                             personals[i] = new ZephyrPersonals(sender, unreadCount, totalCount);
                         }
@@ -218,6 +222,24 @@ public class ZephyrService extends Service {
         
         public void fetchZephyrgrams(final Query query,
                                      final ZephyrCallback<ZephyrgramResultSet> callback) {
+            this.fetchFilterId(query, new ZephyrCallback<String>() {
+
+                public void run(String filterId) {
+                    ZephyrBinder.this.fetchStartingPage(query, filterId,
+                                                        callback);
+                }
+
+                public void onError(Throwable e) {
+                    Log.e("ZephyrBinder#fetchZephyrgrams",
+                          "onError", e);
+                    callback.onError(e);
+                }
+            });
+        }
+        
+        private void fetchFilterId(Query query, 
+                                   final ZephyrCallback<String> callback) {
+            
             XMLRPCCallback filterCallback = new XMLRPCCallback() {
                 public void onResponse(long id, Object response) {
                     String filterId;
@@ -230,18 +252,17 @@ public class ZephyrService extends Service {
                     }
                     
                     // return result set for first page
-                    ZephyrBinder.this.fetchStartingPage(query, filterId,
-                                                        callback);
+                    callback.run(filterId);
                 }
                 
                 public void onError(long id, XMLRPCException error) {
-                    Log.e("ZephyrBinder#fetchZephyrgrams", "xmlrpc exception",
+                    Log.e("ZephyrBinder#fetchFilterId", "xmlrpc exception",
                           error);
                     callback.onError(error);
                 }
                 
                 public void onServerError(long id, XMLRPCServerException error) {
-                    Log.e("ZephyrBinder#fetchZephyrgrams",
+                    Log.e("ZephyrBinder#fetchFilterId",
                           "xmlrpc server exception", error);
                     callback.onError(error);
                 }
@@ -291,6 +312,10 @@ public class ZephyrService extends Service {
         
         public void fetchNextPage(ZephyrgramResultSet resultSet,
                                   ZephyrCallback<ZephyrgramResultSet> callback) {
+            Log.i("ZephyrService offset", ""+resultSet.getOffset());
+            Log.i("ZephyrService pageLength", ""+resultSet.getPageLength());
+            Log.i("ZephyrService per page", ""+ZEPHYRGRAMS_PER_PAGE);
+            
             this.fetchPage(resultSet.getQuery(), resultSet.getFilterId(),
                            resultSet.getOffset() + resultSet.getPageLength(),
                            ZEPHYRGRAMS_PER_PAGE, callback);
@@ -310,7 +335,7 @@ public class ZephyrService extends Service {
                     
                     if (offset < 0) {
                         // fetch page of most recent
-                        fetchPage(query, filterId, total - ZEPHYRGRAMS_PER_PAGE,
+                        fetchPage(query, filterId, Math.max(0, total - ZEPHYRGRAMS_PER_PAGE),
                                   ZEPHYRGRAMS_PER_PAGE, callback);
                     }
                     else {
@@ -362,7 +387,7 @@ public class ZephyrService extends Service {
                         Map<String, Object> message = (Map<String, Object>) messageObj;
                         String cls = (String) message.get("cls");
                         String instance = (String) message.get("instance");
-                        String body = (String) message.get("message");
+                        String body = TextWrapper.unwrap((String) message.get("message"));
                         String user = (String) message.get("user");
                         String sender = (String) message.get("sender");
                         Boolean read = (Boolean) message.get("read");
@@ -394,6 +419,138 @@ public class ZephyrService extends Service {
             
             xmlRpcClient.callAsync(zephyrgramCallback, "messenger.get",
                                    filterId, offset, pageLength);
+        }
+        
+        public void starClass(final String cls, final ZephyrStatusCallback callback) {
+            XMLRPCCallback starCallback = new XMLRPCCallback() {
+                public void onResponse(long id, Object result) {
+                    boolean response = (Boolean) result;
+                    if(response) {
+                        callback.onSuccess();
+                    }
+                    else {
+                        callback.onFailure();
+                    }
+                }
+                
+                public void onError(long id, XMLRPCException error) {
+                    Log.e("ZephyrBinder#starClass", "xmlrpc exception",
+                          error);
+                    callback.onError(error);
+                }
+                
+                public void onServerError(long id, XMLRPCServerException error) {
+                    Log.e("ZephyrBinder#starClass",
+                          "xmlrpc server exception", error);
+                    callback.onError(error);
+                }
+            };
+            
+            xmlRpcClient.callAsync(starCallback, "preferences.starClass", cls);
+        }
+        
+        public void unstarClass(final String cls, final ZephyrStatusCallback callback) {
+            XMLRPCCallback unstarCallback = new XMLRPCCallback() {
+                public void onResponse(long id, Object result) {
+                    boolean response = (Boolean) result;
+                    if(response) {
+                        callback.onSuccess();
+                    }
+                    else {
+                        callback.onFailure();
+                    }
+                }
+                
+                public void onError(long id, XMLRPCException error) {
+                    Log.e("ZephyrBinder#unstarClass", "xmlrpc exception",
+                          error);
+                    callback.onError(error);
+                }
+                
+                public void onServerError(long id, XMLRPCServerException error) {
+                    Log.e("ZephyrBinder#unstarClass",
+                          "xmlrpc server exception", error);
+                    callback.onError(error);
+                }
+            };
+            
+            xmlRpcClient.callAsync(unstarCallback, "preferences.unstarClass", cls);
+        }
+        
+        public void hideClass(final String cls, final ZephyrStatusCallback callback) {
+            XMLRPCCallback hideCallback = new XMLRPCCallback() {
+                public void onResponse(long id, Object result) {
+                    boolean response = (Boolean) result;
+                    if(response) {
+                        callback.onSuccess();
+                    }
+                    else {
+                        callback.onFailure();
+                    }
+                }
+                
+                public void onError(long id, XMLRPCException error) {
+                    Log.e("ZephyrBinder#hideClass", "xmlrpc exception",
+                          error);
+                    callback.onError(error);
+                }
+                
+                public void onServerError(long id, XMLRPCServerException error) {
+                    Log.e("ZephyrBinder#hideClass",
+                          "xmlrpc server exception", error);
+                    callback.onError(error);
+                }
+            };
+            
+            xmlRpcClient.callAsync(hideCallback, "preferences.hideClass", cls);
+        }
+        
+        public void markRead(ZephyrgramResultSet resultSet,
+                             final ZephyrStatusCallback callback) {
+            
+            this.markFilterRead(resultSet.getFilterId(), resultSet.getOffset(),
+                                resultSet.getPageLength(), callback);
+        }
+        
+        public void markRead(Query query, final ZephyrStatusCallback callback) {
+            
+            this.fetchFilterId(query, new ZephyrCallback<String>() {
+
+                public void run(String filterId) {
+                    markFilterRead(filterId, 0, -1, callback);
+                }
+
+                public void onError(Throwable e) {
+                    Log.e("ZephyrBinder#markRead", "onError", e);
+                    callback.onError(e);
+                }
+                
+            });
+        }
+        
+        private void markFilterRead(String filterId, int offset, int limit,
+                                    final ZephyrStatusCallback callback) {
+            XMLRPCCallback markCallback = new XMLRPCCallback() {
+                public void onResponse(long id, Object result) {
+                    @SuppressWarnings("unused")
+                    Integer retVal = (Integer) result;
+                    callback.onSuccess();
+                }
+                
+                public void onError(long id, XMLRPCException error) {
+                    Log.e("ZephyrBinder#markRead", "xmlrpc exception", error);
+                    callback.onError(error);
+                }
+                
+                public void onServerError(long id, XMLRPCServerException error) {
+                    Log.e("ZephyrBinder#markRead", "xmlrpc server exception",
+                          error);
+                    callback.onError(error);
+                }
+            };
+            
+            xmlRpcClient.callAsync(markCallback, "messenger.markFilterRead",
+                                   filterId, offset, limit);
         }
     }
     

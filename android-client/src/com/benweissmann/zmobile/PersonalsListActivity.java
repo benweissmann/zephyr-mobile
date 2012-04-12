@@ -11,9 +11,13 @@ import com.benweissmann.zmobile.service.objects.ZephyrPersonals;
 import com.benweissmann.zmobile.service.objects.Zephyrgram;
 
 import android.content.Intent;
+import android.view.ContextMenu;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View;
+import android.view.ContextMenu.ContextMenuInfo;
+import android.widget.AdapterView.AdapterContextMenuInfo;
 
 public class PersonalsListActivity extends ZephyrgramSetActivity<ZephyrPersonals> {
     @Override
@@ -63,5 +67,41 @@ public class PersonalsListActivity extends ZephyrgramSetActivity<ZephyrPersonals
         breadcrumbs.add(new ListHeader.Breadcrumb(getString(R.string.personal_label), null));
         
         return breadcrumbs;
+    }
+    
+        @Override
+    public void onCreateContextMenu(ContextMenu menu, View v,
+                                    ContextMenuInfo menuInfo) {
+        super.onCreateContextMenu(menu, v, menuInfo);
+        
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.instance_list_context_menu, menu);
+    }
+    
+    @Override
+    public boolean onContextItemSelected(MenuItem item) {
+        AdapterContextMenuInfo info = (AdapterContextMenuInfo) item.getMenuInfo();
+        boolean allSelected = false;
+        ZephyrPersonals personals = null;
+        
+        if (info.position == 0) {
+            allSelected = true;
+        }
+        else {
+            personals = this.getCurrentListAdapter().getItem(info.position-1);
+        }
+        
+        switch (item.getItemId()) {
+            case R.id.instance_list_mark_all_read:
+                if(allSelected) {
+                    this.markRead((new Query()).cls(Zephyrgram.PERSONALS_CLASS));
+                }
+                else {
+                    this.markRead(personals.getQuery());
+                }
+            default:
+                return super.onContextItemSelected(item);
+        }
+        
     }
 }

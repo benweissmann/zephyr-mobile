@@ -11,6 +11,8 @@ import com.benweissmann.zmobile.service.ZephyrServiceBridge;
 import com.benweissmann.zmobile.service.ZephyrService.ZephyrBinder;
 import com.benweissmann.zmobile.service.callbacks.BinderCallback;
 import com.benweissmann.zmobile.service.callbacks.ZephyrCallback;
+import com.benweissmann.zmobile.service.callbacks.ZephyrStatusCallback;
+import com.benweissmann.zmobile.service.objects.Query;
 import com.benweissmann.zmobile.service.objects.ZephyrgramSet;
 
 import android.app.Activity;
@@ -18,15 +20,18 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 import android.widget.AdapterView.OnItemClickListener;
 
 public abstract class ZephyrgramSetActivity<T extends ZephyrgramSet> extends Activity {
     private View allListItem;
+    private ZephyrgramSetListAdapter<T> currentListAdapter = null;
     
     /**
      * Called when this activity is created. If you need to do extra setup,
@@ -163,6 +168,13 @@ public abstract class ZephyrgramSetActivity<T extends ZephyrgramSet> extends Act
     protected ZephyrgramSetListAdapter<T> getListAdapter(ArrayList<T> items) {
         return new ZephyrgramSetListAdapter<T>(this, items);
     }
+    
+    /**
+     * Returns the currently-used list adapter
+     */
+    protected ZephyrgramSetListAdapter<T> getCurrentListAdapter() {
+        return this.currentListAdapter;
+    }
 
     /**
      * Fetches a fresh list of ZephyrgramSets and displays them.
@@ -195,10 +207,12 @@ public abstract class ZephyrgramSetActivity<T extends ZephyrgramSet> extends Act
         this.runOnUiThread(new Runnable() {
             public void run() {
                 ListView listView = (ListView) findViewById(R.id.list_view);
+                registerForContextMenu(listView);
                 ArrayList<T> items = new ArrayList<T>(Arrays.asList(itemArray));
                 
                 refreshHeaderViews(listView, items);
                 final ZephyrgramSetListAdapter<T> listAdapter = getListAdapter(items);
+                currentListAdapter = listAdapter;
                 listView.setAdapter(listAdapter);
                 
                 listView.setOnItemClickListener(new OnItemClickListener() {
@@ -211,6 +225,41 @@ public abstract class ZephyrgramSetActivity<T extends ZephyrgramSet> extends Act
                 
                 LoadFlipper.flipToContent(ZephyrgramSetActivity.this);
             }
+        });
+    }
+    
+    protected void markRead(final Query query) {
+        ZephyrServiceBridge.getBinder(this, new BinderCallback() {
+            public void run(ZephyrBinder binder, Runnable onComplete) {
+                binder.markRead(query, new ZephyrStatusCallback() {
+                    public void onSuccess() {
+                        update();
+                    }
+                    
+                    public void onFailure() {
+                        showFailToast();
+                    }
+                    
+                    public void onError(Throwable e) {
+                        showFailToast();
+                    }
+                });
+                onComplete.run();
+            }
+        });
+    }
+    
+    protected void showFailToast() {
+        runOnUiThread(new Runnable() {
+
+            public void run() {
+                CharSequence text = getString(R.string.operation_failed);
+                int duration = Toast.LENGTH_SHORT;
+                Toast toast = Toast.makeText(ZephyrgramSetActivity.this, text, duration);
+                toast.setGravity(Gravity.BOTTOM|Gravity.CENTER, 0, 0);
+                toast.show();
+            }
+            
         });
     }
 }

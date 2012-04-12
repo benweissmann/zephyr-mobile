@@ -8,6 +8,7 @@ import sqlite3
 from itertools import izip
 from functools import wraps
 from threading import Thread, RLock
+from time import time
 from datetime import datetime
 import os
 sqlite3.register_converter("BOOL", lambda v: v != "0")
@@ -117,10 +118,10 @@ class Filter(object):
     def delete(self, db):
         return db.execute("DELETE FROM messages" + self._where, self._objs).rowcount
 
-    def markRead(self, db, updates):
+    def markRead(self, db):
         return db.execute("UPDATE messages SET read=1" + self._where, self._objs).rowcount
 
-    def markUnread(self, db, updates):
+    def markUnread(self, db):
         return db.execute("UPDATE messages SET read=0" + self._where, self._objs).rowcount
 
     def count(self, db, offset=0, perpage=-1):
@@ -246,7 +247,7 @@ class Messenger(Thread):
                 znotice.cls,
                 znotice.instance,
                 znotice.recipient or None,
-                datetime.fromtimestamp(znotice.time)
+                datetime.fromtimestamp(znotice.time or time())
             )
         )
 
@@ -268,11 +269,16 @@ class Messenger(Thread):
         # Send a message to bsw
         >>> messenger.send("This is a really short message.", "message", "personal", "bsw")
         """
-        zephyr.ZNotice(
+        znotice = zephyr.ZNotice(
             cls=cls,
             instance=instance,
             recipient=user,
-            message="%s\x00%s" % (settings.getVariable("signature"), message)).send()
+            message="%s\x00%s" % (settings.getVariable("signature"), message))
+
+        znotice.send()
+
+        if user:
+            self.store_znotice(znotice)
 
     @exported
     def filterMessages(self, messageFilter):

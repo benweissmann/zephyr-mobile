@@ -3,6 +3,7 @@ package com.benweissmann.zmobile.service.objects;
 import java.util.Date;
 
 import com.benweissmann.zmobile.service.ZephyrService;
+import com.benweissmann.zmobile.util.DomainStripper;
 
 //TODO: toString, equals, hashCode
 
@@ -61,8 +62,12 @@ public final class Zephyrgram {
     public String getInstance() {
         return instance;
     }
-
+    
     public String getSender() {
+        return DomainStripper.stripDomain(this.sender);
+    }
+
+    public String getRawSender() {
         return sender;
     }
 
@@ -82,7 +87,11 @@ public final class Zephyrgram {
     }
 
     public String getUser() {
-        return user;
+        return DomainStripper.stripDomain(this.user);
+    }
+    
+    public String getRawUser() {
+        return this.user;
     }
 
     public String getBody() {
@@ -161,6 +170,4 @@ public final class Zephyrgram {
             return false;
         return true;
     }
-    
-    
 }

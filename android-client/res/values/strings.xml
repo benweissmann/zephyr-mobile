@@ -33,4 +33,15 @@
 	<string name="breadcrumb_separator">></string>
 	<string name="zephyrgrams_context_menu_reply_class">Reply to class</string>
 	<string name="zephyrgrams_context_menu_reply_personal">Reply to sender</string>
+	<string name="class_list_star_class">Star Class</string>
+	<string name="class_list_hide_item">Hide Class</string>
+	<string name="zephyrgram_list_reply_class">Reply to Class</string>
+	<string name="zephyrgram_list_reply_personal">Reply in Personals</string>
+	<string name="zephyrgram_list_show_class">View This Class</string>
+	<string name="zephyrgram_list_show_instance">View This Instance</string>
+	<string name="zephyrgram_list_show_personals">View Personals</string>
+	<string name="class_list_unstar_class">Unstar Class</string>
+	<string name="class_list_mark_all_read">Mark All Read</string>
+	<string name="operation_failed">Operation Failed</string>
+	<string name="mark_read_error">Error occurred while marking messages as read</string>
 </resources>

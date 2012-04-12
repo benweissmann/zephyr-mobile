@@ -2,6 +2,8 @@ package com.benweissmann.zmobile.service.objects;
 
 import java.io.Serializable;
 
+import com.benweissmann.zmobile.util.DomainStripper;
+
 /**
  * An immutable class representing a set of personals from a particular
  * user.
@@ -23,11 +25,15 @@ public final class ZephyrPersonals implements Serializable, ZephyrgramSet {
     }
     
     public String getName() {
-        return sender;
+        return getSender();
     }
 
     public String getSender() {
-        return sender;
+        return DomainStripper.stripDomain(this.sender);
+    }
+    
+    public String getRawSender() {
+        return this.sender;
     }
 
     public int getUnreadCount() {
