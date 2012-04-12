@@ -2,6 +2,7 @@ package com.benweissmann.zmobile;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 import com.benweissmann.zmobile.components.ListHeader;
@@ -32,6 +33,8 @@ import android.widget.AdapterView.OnItemClickListener;
 public abstract class ZephyrgramSetActivity<T extends ZephyrgramSet> extends Activity {
     private View allListItem;
     private ZephyrgramSetListAdapter<T> currentListAdapter = null;
+    private Date currentTime = new Date();
+    private static final int REFRESH_TIME = 5000;
     
     /**
      * Called when this activity is created. If you need to do extra setup,
@@ -45,8 +48,22 @@ public abstract class ZephyrgramSetActivity<T extends ZephyrgramSet> extends Act
         this.setup();
         ListHeader.populate(this, this.getBreadcrumbs());
         this.addHeaderViews((ListView) findViewById(R.id.list_view));
+        
+        findViewById(R.id.retry_button).setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                update();
+            }
+        });
 
         update();
+    }
+    
+    @Override
+    public final void onResume() {
+        super.onResume();
+        if(((new Date()).getTime() - currentTime.getTime()) > REFRESH_TIME) {
+            update();
+        }
     }
     
     /**
@@ -181,6 +198,7 @@ public abstract class ZephyrgramSetActivity<T extends ZephyrgramSet> extends Act
      */
     protected void update() {
         LoadFlipper.flipToLoader(this);
+        this.currentTime = new Date();
         
         ZephyrServiceBridge.getBinder(this, new BinderCallback() {
             public void run(ZephyrBinder binder, final Runnable onComplete) {
@@ -195,6 +213,8 @@ public abstract class ZephyrgramSetActivity<T extends ZephyrgramSet> extends Act
                         Log.e("ZephyrgramSetActivity",
                               "got error callback in ZephyrgramSetActivity#update",
                               e);
+                        
+                        showError();
                         
                         onComplete.run();
                     }
@@ -261,5 +281,9 @@ public abstract class ZephyrgramSetActivity<T extends ZephyrgramSet> extends Act
             }
             
         });
+    }
+    
+    protected void showError() {
+        LoadFlipper.flipToError(this);
     }
 }

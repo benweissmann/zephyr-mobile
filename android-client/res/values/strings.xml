@@ -44,4 +44,7 @@
 	<string name="class_list_mark_all_read">Mark All Read</string>
 	<string name="operation_failed">Operation Failed</string>
 	<string name="mark_read_error">Error occurred while marking messages as read</string>
+	<string name="load_failed">Failed to load data</string>
+	<string name="retry_button">Retry</string>
+	<string name="load_error_desc">Load Failed</string>
 </resources>

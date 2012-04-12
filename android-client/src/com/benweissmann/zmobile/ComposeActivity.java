@@ -175,6 +175,17 @@ public class ComposeActivity extends TabActivity {
     private void send(final Zephyrgram z) {
         final Toast toast = Toast.makeText(this, getString(R.string.send_start_toast), Toast.LENGTH_SHORT);
         
+        // disable send buttons to prevent double sending
+        runOnUiThread(new Runnable() {
+            public void run() {
+                Button personalSendButton = (Button) findViewById(R.id.compose_personal_send);
+                personalSendButton.setEnabled(false);
+                Button classSendButton = (Button) findViewById(R.id.compose_class_send);
+                classSendButton.setEnabled(false);
+            }
+        });
+        
+        
         ZephyrServiceBridge.getBinder(this, new BinderCallback() {
             public void run(ZephyrBinder binder, final Runnable onComplete) {
                 binder.send(z, new ZephyrStatusCallback() {
@@ -197,13 +208,7 @@ public class ComposeActivity extends TabActivity {
                         
                         onComplete.run();
                         toast.cancel();
-                        runOnUiThread(new Runnable() {
-                            public void run() {
-                                Toast.makeText(ComposeActivity.this,
-                                               getString(R.string.send_fail_toast),
-                                               Toast.LENGTH_SHORT).show();
-                            }
-                        });
+                        onSendFailure();
                     }
                     
                     public void onError(Throwable e) {
@@ -211,15 +216,24 @@ public class ComposeActivity extends TabActivity {
                         
                         onComplete.run();
                         toast.cancel();
-                        runOnUiThread(new Runnable() {
-                            public void run() {
-                                Toast.makeText(ComposeActivity.this,
-                                               getString(R.string.send_fail_toast),
-                                               Toast.LENGTH_SHORT).show();
-                            }
-                        });
+                        onSendFailure();
                     }
                 });
+            }
+        });
+    }
+    
+    private void onSendFailure() {
+        runOnUiThread(new Runnable() {
+            public void run() {
+                Toast.makeText(ComposeActivity.this,
+                               getString(R.string.send_fail_toast),
+                               Toast.LENGTH_SHORT).show();
+                
+                Button personalSendButton = (Button) findViewById(R.id.compose_personal_send);
+                personalSendButton.setEnabled(true);
+                Button classSendButton = (Button) findViewById(R.id.compose_class_send);
+                classSendButton.setEnabled(true);
             }
         });
     }

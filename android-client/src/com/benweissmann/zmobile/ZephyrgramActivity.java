@@ -16,6 +16,7 @@ import com.benweissmann.zmobile.service.callbacks.ZephyrStatusCallback;
 import com.benweissmann.zmobile.service.objects.Query;
 import com.benweissmann.zmobile.service.objects.Zephyrgram;
 import com.benweissmann.zmobile.service.objects.ZephyrgramResultSet;
+import com.benweissmann.zmobile.util.DomainStripper;
 
 import android.app.Activity;
 import android.content.Context;
@@ -75,6 +76,13 @@ public class ZephyrgramActivity extends Activity {
         
         // add breadcrumbs
         ListHeader.populate(ZephyrgramActivity.this, getBreadcrumbs());
+        
+        findViewById(R.id.retry_button).setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                Log.i("ZephyrgramActivity", "retry button onclick");
+                getFirstPage();
+            }
+        });
 
         getFirstPage();
     }
@@ -154,6 +162,9 @@ public class ZephyrgramActivity extends Activity {
                                 Log.e("ZephyrgramActivity",
                                         "got error callback in ZephyrgramActivity#getFirstPage",
                                         e);
+                                
+                                fetching = false;
+                                LoadFlipper.flipToError(ZephyrgramActivity.this);
                                 
                                 onComplete.run();
                             }
@@ -285,6 +296,10 @@ public class ZephyrgramActivity extends Activity {
                                 Log.e("ZephyrgramActivity",
                                         "got error callback in ZephyrgramActivity#getNextPage",
                                         e);
+                                
+                                showFailToast();
+                                fetching = false;
+                                
                                 onComplete.run();
                             }
                         });
@@ -321,6 +336,10 @@ public class ZephyrgramActivity extends Activity {
                                 Log.e("ZephyrgramActivity",
                                         "got error callback in ZephyrgramActivity#getPrevPage",
                                         e);
+                                
+                                showFailToast();
+                                fetching = false;
+                                
                                 onComplete.run();
                             }
                         });
@@ -450,7 +469,7 @@ public class ZephyrgramActivity extends Activity {
             }
             else {
                 // we're in Home -> Personals -> <sender>
-                breadcrumbs.add(new Breadcrumb(this.query.getSender(), null));
+                breadcrumbs.add(new Breadcrumb(DomainStripper.stripDomain(this.query.getSender()), null));
             }
         }
         else {
@@ -559,7 +578,7 @@ public class ZephyrgramActivity extends Activity {
             this.goToZephyrgrams(new Query().cls(z.getCls()).instance(z.getInstance()));
             return true;
         case R.id.zephyrgram_list_show_personals:
-            this.goToZephyrgrams(new Query().cls(Zephyrgram.PERSONALS_CLASS).sender(z.getSender()));
+            this.goToZephyrgrams(new Query().cls(Zephyrgram.PERSONALS_CLASS).sender(z.getRawSender()));
             return true;
         default:
             return super.onContextItemSelected(item);
@@ -576,5 +595,19 @@ public class ZephyrgramActivity extends Activity {
         Intent intent = new Intent(this, InstanceListActivity.class);
         intent.putExtra(InstanceListActivity.ZEPHYR_CLASS_EXTRA, cls);
         startActivityForResult(intent, 0);
+    }
+    
+    private void showFailToast() {
+        runOnUiThread(new Runnable() {
+
+            public void run() {
+                CharSequence text = getString(R.string.operation_failed);
+                int duration = Toast.LENGTH_SHORT;
+                Toast toast = Toast.makeText(ZephyrgramActivity.this, text, duration);
+                toast.setGravity(Gravity.BOTTOM|Gravity.CENTER, 0, 0);
+                toast.show();
+            }
+            
+        });
     }
 }
