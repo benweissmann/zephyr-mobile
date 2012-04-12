@@ -12,6 +12,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.res.Resources;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -192,6 +193,8 @@ public class ComposeActivity extends TabActivity {
                     }
                     
                     public void onFailure() {
+                        Log.w("ComposeActivity", "got failure");
+                        
                         onComplete.run();
                         toast.cancel();
                         runOnUiThread(new Runnable() {
@@ -204,6 +207,8 @@ public class ComposeActivity extends TabActivity {
                     }
                     
                     public void onError(Throwable e) {
+                        Log.e("ComposeActivity", "got error", e);
+                        
                         onComplete.run();
                         toast.cancel();
                         runOnUiThread(new Runnable() {

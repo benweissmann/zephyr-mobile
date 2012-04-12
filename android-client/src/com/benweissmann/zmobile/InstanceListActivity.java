@@ -5,9 +5,13 @@ import java.util.List;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.ContextMenu;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View;
+import android.view.ContextMenu.ContextMenuInfo;
+import android.widget.AdapterView.AdapterContextMenuInfo;
 
 import com.benweissmann.zmobile.components.ListHeader;
 import com.benweissmann.zmobile.service.ZephyrService.ZephyrBinder;
@@ -78,5 +82,41 @@ public class InstanceListActivity extends ZephyrgramSetActivity<ZephyrInstance> 
         breadcrumbs.add(new ListHeader.Breadcrumb(this.className, null));
         
         return breadcrumbs;
+    }
+    
+    @Override
+    public void onCreateContextMenu(ContextMenu menu, View v,
+                                    ContextMenuInfo menuInfo) {
+        super.onCreateContextMenu(menu, v, menuInfo);
+        
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.instance_list_context_menu, menu);
+    }
+    
+    @Override
+    public boolean onContextItemSelected(MenuItem item) {
+        AdapterContextMenuInfo info = (AdapterContextMenuInfo) item.getMenuInfo();
+        boolean allSelected = false;
+        ZephyrInstance instance = null;
+        
+        if (info.position == 0) {
+            allSelected = true;
+        }
+        else {
+            instance = this.getCurrentListAdapter().getItem(info.position-1);
+        }
+        
+        switch (item.getItemId()) {
+            case R.id.instance_list_mark_all_read:
+                if(allSelected) {
+                    this.markRead((new Query()).cls(this.className));
+                }
+                else {
+                    this.markRead(instance.getQuery());
+                }
+            default:
+                return super.onContextItemSelected(item);
+        }
+        
     }
 }

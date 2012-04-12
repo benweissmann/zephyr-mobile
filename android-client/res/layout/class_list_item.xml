@@ -8,12 +8,20 @@
     android:paddingTop="5dp" >
 
     <ImageView
-        android:id="@+id/class_star"
+        android:id="@+id/class_star_off"
         android:layout_width="wrap_content"
         android:layout_height="fill_parent"
         android:layout_marginRight="6dip"
         android:contentDescription="@string/star_desc"
         android:src="@drawable/star_big_off" />
+    
+    <ImageView
+        android:id="@+id/class_star_on"
+        android:layout_width="wrap_content"
+        android:layout_height="fill_parent"
+        android:layout_marginRight="6dip"
+        android:contentDescription="@string/star_desc"
+        android:src="@drawable/star_big_on" />
 
     <TextView
         android:id="@+id/item_label"

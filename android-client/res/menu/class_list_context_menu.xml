@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+    <item android:id="@+id/class_list_star_class"
+          android:title="@string/class_list_star_class"></item>
+    
+    <item android:id="@+id/class_list_unstar_class"
+          android:title="@string/class_list_unstar_class"></item>
+    
+    <item android:id="@+id/class_list_hide_item"
+          android:title="@string/class_list_hide_item"></item>
+    
+    <item android:id="@+id/class_list_mark_all_read"
+          android:title="@string/class_list_mark_all_read"></item>
+</menu>

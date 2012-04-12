@@ -12,11 +12,13 @@ public final class ZephyrClass implements Serializable, ZephyrgramSet {
     private final String name;
     private final int unreadCount;
     private final int totalCount;
+    private final boolean starred;
 
-    public ZephyrClass(String name, int unreadCount, int totalCount) {
+    public ZephyrClass(String name, int unreadCount, int totalCount, boolean starred) {
         this.name = name;
         this.unreadCount = unreadCount;
         this.totalCount = totalCount;
+        this.starred = starred;
     }
 
     /**
@@ -44,11 +46,15 @@ public final class ZephyrClass implements Serializable, ZephyrgramSet {
     public int getTotalCount() {
         return totalCount;
     }
+    
+    public boolean isStarred() {
+        return starred;
+    }
 
     @Override
     public String toString() {
         return "ZephyrClass [name=" + name + ", unreadCount=" + unreadCount
-                + ", totalCount=" + totalCount + "]";
+               + ", totalCount=" + totalCount + ", starred=" + starred + "]";
     }
 
     @Override
@@ -56,6 +62,7 @@ public final class ZephyrClass implements Serializable, ZephyrgramSet {
         final int prime = 31;
         int result = 1;
         result = prime * result + ((name == null) ? 0 : name.hashCode());
+        result = prime * result + (starred ? 1231 : 1237);
         result = prime * result + totalCount;
         result = prime * result + unreadCount;
         return result;
@@ -75,6 +82,8 @@ public final class ZephyrClass implements Serializable, ZephyrgramSet {
                 return false;
         }
         else if (!name.equals(other.name))
+            return false;
+        if (starred != other.starred)
             return false;
         if (totalCount != other.totalCount)
             return false;

@@ -16,11 +16,11 @@ import android.widget.TextView;
 public class ListHeader {
     public static class Breadcrumb {
         private String label;
-        private Class<? extends Activity> activity;
+        private Intent intent;
         
-        public Breadcrumb(String label, Class<? extends Activity> activity) {
+        public Breadcrumb(String label, Intent intent) {
             this.label = label;
-            this.activity = activity;
+            this.intent = intent;
         }
         
         public String getLabel() {
@@ -31,16 +31,16 @@ public class ListHeader {
             this.label = label;
         }
         
-        public Class<? extends Activity> getActivity() {
-            return activity;
+        public Intent getIntent() {
+            return intent;
         }
         
-        public void setActivity(Class<? extends Activity> activity) {
-            this.activity = activity;
+        public void setIntent(Intent intent) {
+            this.intent = intent;
         }
 
-        public boolean hasActivity() {
-            return this.activity != null;
+        public boolean hasIntent() {
+            return this.intent != null;
         }
     }
     
@@ -51,7 +51,7 @@ public class ListHeader {
         v.findViewById(R.id.breadcrumb_home)
          .setOnClickListener(new View.OnClickListener() {
              public void onClick(View v) {
-                 goToBreadcrumbActivity(activity, ClassListActivity.class);
+                 goToBreadcrumbActivity(activity, new Intent(activity, ClassListActivity.class));
              }
          });
         
@@ -60,10 +60,10 @@ public class ListHeader {
             TextView label = (TextView) breadcrumbView.findViewById(R.id.breadcrumb_label);
             label.setText(breadcrumb.getLabel());
             
-            if(breadcrumb.hasActivity()) {
+            if(breadcrumb.hasIntent()) {
                 label.setOnClickListener(new View.OnClickListener() {
                     public void onClick(View v) {
-                        goToBreadcrumbActivity(activity, breadcrumb.getActivity());
+                        goToBreadcrumbActivity(activity, breadcrumb.getIntent());
                     }
                 });
             }
@@ -73,10 +73,9 @@ public class ListHeader {
     }
     
     private static void goToBreadcrumbActivity(Activity currentActivity,
-                                               Class<? extends Activity> newActivity) {
-        Intent intent = new Intent(currentActivity, newActivity);
-        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP
-                        | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                                               Intent intent) {
+        /*intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP
+                        | Intent.FLAG_ACTIVITY_SINGLE_TOP);*/
         currentActivity.startActivityForResult(intent, 0);
     }
 }
