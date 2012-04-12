@@ -57,7 +57,7 @@ class ZephyrXMLRPCServer(SimpleXMLRPCServer, object):
             if not getattr(obj, "_export", False):
                 raise AttributeError("Method not supported.")
 
-        return obj(*params[2:])
+        return obj(*params)
 
     @exported
     def uptime(self):
