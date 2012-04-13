@@ -5,7 +5,7 @@ logging.basicConfig(level=logging.DEBUG)
 from common import return_status, exported
 import settings
 import sqlite3
-from itertools import izip, chain
+from itertools import izip
 from functools import wraps
 from threading import Thread, RLock
 from time import time
@@ -265,13 +265,13 @@ class Messenger(Thread):
         return self.db.execute(
             'INSERT INTO messages(sender, auth, signature, message, cls, instance, user, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
             (
-                znotice.sender,
+                unicode(znotice.sender),
                 znotice.auth,
-                sig,
-                msg,
-                znotice.cls,
-                znotice.instance,
-                znotice.recipient or None,
+                unicode(sig),
+                unicode(msg),
+                unicode(znotice.cls),
+                unicode(znotice.instance),
+                unicode(znotice.recipient) or None,
                 datetime.fromtimestamp(znotice.time or time())
             )
         )
