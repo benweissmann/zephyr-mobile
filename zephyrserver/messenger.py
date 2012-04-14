@@ -66,6 +66,9 @@ def open_or_create_db(path):
 def gen_params(num):
     return "(" + "?,"*(num-1) + "?)"
 
+def decode(s):
+    return unicode(s, "utf-8", "replace")
+
 # Returns the input
 ret = lambda x:x
 
@@ -265,13 +268,13 @@ class Messenger(Thread):
         return self.db.execute(
             'INSERT INTO messages(sender, auth, signature, message, cls, instance, user, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
             (
-                unicode(znotice.sender),
+                unicode(znotice.sender, "utf-8", "replace"),
                 znotice.auth,
-                unicode(sig),
-                unicode(msg),
-                unicode(znotice.cls),
-                unicode(znotice.instance),
-                unicode(znotice.recipient) or None,
+                unicode(sig, "utf-8", "replace"),
+                unicode(msg, "utf-8", "replace"),
+                unicode(znotice.cls, "utf-8", "replace"),
+                unicode(znotice.instance, "utf-8", "replace"),
+                unicode(znotice.recipient, "utf-8", "replace") or None,
                 datetime.fromtimestamp(znotice.time or time())
             )
         )
