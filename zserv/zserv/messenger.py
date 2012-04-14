@@ -2,7 +2,7 @@
 # encoding: utf-8
 import logging
 logging.basicConfig(level=logging.DEBUG)
-from common import return_status, exported
+from common import exported, sync
 import settings
 import sqlite3
 from itertools import izip
@@ -45,8 +45,18 @@ def open_or_create_db(path):
         directory = os.path.dirname(path)
         if not os.path.isdir(directory):
             os.makedirs(directory)
+
+        # Create the file wit 0600 permissions. If the user wants to change
+        # this, that's there problem.
+        if not os.path.isfile(path):
+            os.close(os.open(path, os.O_CREATE, 0600))
+
     # Multi-threading ... should be safe
     db = sqlite3.connect(path, detect_types=sqlite3.PARSE_DECLTYPES, check_same_thread=False)
+
+    # Force permissions on start.
+    # Doing this after opening is not a problem
+
     db.row_factory = lambda cursor, row: dict(izip((c[0] for c in cursor.description), row))
     db.execute("""CREATE TABLE IF NOT EXISTS messages (
         id          INTEGER NOT NULL PRIMARY KEY,
@@ -65,9 +75,6 @@ def open_or_create_db(path):
 
 def gen_params(num):
     return "(" + "?,"*(num-1) + "?)"
-
-def decode(s):
-    return unicode(s, "utf-8", "replace")
 
 # Returns the input
 ret = lambda x:x
@@ -280,7 +287,7 @@ class Messenger(Thread):
         )
 
     @exported
-    @return_status
+    @sync
     def send(self, message, cls="message", instance="personal", user=None):
         """
         Send a zephyr.
@@ -331,6 +338,7 @@ class Messenger(Thread):
         return str(f.fid)
 
     @exported
+    @sync
     def get(self, fid, offset=0, perpage=-1):
         """
         Get the messages that match fid.
@@ -367,6 +375,7 @@ class Messenger(Thread):
 
 
     @exported
+    @sync
     def hasNew(self, last, messageFilter=None):
         """
         Returns True if there is a message that matches messageFilter newer
@@ -472,6 +481,7 @@ class Messenger(Thread):
         return sorted(starred, key=lambda item: not item["starred"])
 
     @exported
+    @sync
     def getInstances(self, cls, offset=0, perpage=-1):
         """ List the instances with messages in a given class.
 
@@ -494,6 +504,7 @@ class Messenger(Thread):
             """, (cls, perpage, offset)).fetchall()
 
     @exported
+    @sync
     def getUnreadInstances(self, cls, offset=0, perpage=-1):
         """ List the instances with messages in a given class.
 
@@ -518,6 +529,7 @@ class Messenger(Thread):
 
 
     @exported
+    @sync
     def getClasses(self, offset=0, perpage=-1):
         """
         List the classes with messages.
@@ -541,6 +553,7 @@ class Messenger(Thread):
 
 
     @exported
+    @sync
     def getUnreadClasses(self, offset=0, perpage=-1):
         """
         List the classes with messages.
@@ -566,6 +579,7 @@ class Messenger(Thread):
 
 
     @exported
+    @sync
     def getPersonals(self, offset=0, perpage=-1):
         """
         List the users that have sent personals.
@@ -592,6 +606,7 @@ class Messenger(Thread):
             """, ("personal", "message", perpage, offset)).fetchall();
 
     @exported
+    @sync
     def getCount(self, fid=None):
         """ Get the number of messages that match a filter. """
         if fid is not None:
@@ -600,6 +615,7 @@ class Messenger(Thread):
             return self.db.execute("SELECT COUNT(*) AS total FROM messages").fetchone()["total"]
 
     @exported
+    @sync
     def getOldestUnreadOffset(self, fid):
         """
         Gets the offset of the oldest unread message that matches a filter, or

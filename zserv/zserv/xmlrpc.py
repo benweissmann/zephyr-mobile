@@ -2,11 +2,18 @@ from SimpleXMLRPCServer import SimpleXMLRPCServer
 from subscriptions import SubscriptionManager
 from messenger import Messenger
 from time import time
-from common import exported, assertCompatable, assertAuthenticated
+from common import exported, assertCompatable, assertAuthenticated, authenticate, runserver
 import preferences
-import sys
+import os
 from . import VERSION
+from settings import DATA_DIR
 import ssl
+
+DEFAULT_PORT = 0
+DEFAULT_HOST = "0.0.0.0"
+
+DEFAULT_SERVER_CERT = os.path.join(DATA_DIR, "certs/server_public.pem")
+DEFAULT_SERVER_KEY = os.path.join(DATA_DIR, "certs/server_private.pem")
 
 try:
     import zephyr
@@ -14,15 +21,19 @@ except ImportError:
     print "Failed to import zephyr, using test zephyr."
     import test_zephyr as zephyr
 
-
 __all__ = ('ZephyrXMLRPCServer',)
 
-DEFAULT_PORT = 9000
-DEFAULT_HOST = "localhost"
-
 class ZephyrXMLRPCServer(SimpleXMLRPCServer, object):
-    def __init__(self, host=DEFAULT_HOST, port=DEFAULT_PORT, ssl=True):
+    TYPE = "XML-RPC"
+    def __init__(self,
+                 host=DEFAULT_HOST,
+                 port=DEFAULT_PORT,
+                 ssl=False,
+                 keyfile=DEFAULT_SERVER_KEY,
+                 certfile=DEFAULT_SERVER_CERT):
         self.use_ssl = ssl
+        self.keyfile = keyfile
+        self.certfile = certfile
         super(ZephyrXMLRPCServer, self).__init__((host, port), allow_none=True)
         zephyr.init()
         self.username = zephyr.sender()
@@ -30,13 +41,9 @@ class ZephyrXMLRPCServer(SimpleXMLRPCServer, object):
         self.subscriptions = exported(SubscriptionManager(self.username))
         self.messenger = exported(Messenger(self.username))
 
-    def authenticate(self, username, password):
-        # Call kinit. if true: set token
-        return True #XXX
-
     def server_bind(self):
         if self.use_ssl:
-            self.socket = ssl.wrap_socket(self.socket)
+            self.socket = ssl.wrap_socket(self.socket, keyfile=self.keyfile, certfile=self.certfile, server_side=True)
         super(ZephyrXMLRPCServer, self).server_bind()
 
     def _dispatch(self, method, params):
@@ -51,10 +58,9 @@ class ZephyrXMLRPCServer(SimpleXMLRPCServer, object):
                 raise TypeError("Minimum version unspecified.")
 
         if method == "authenticate":
-            return self.authenticate(*params)
+            return authenticate(*params)
         else:
             try:
-                print params
                 assertAuthenticated(params.pop(0))
             except IndexError:
                 raise TypeError("No authentication token provided.")
@@ -66,6 +72,15 @@ class ZephyrXMLRPCServer(SimpleXMLRPCServer, object):
                 raise AttributeError("Method not supported.")
 
         return obj(*params)
+
+    def getInfo(self):
+        host, port = self.socket.getsockname()
+        return {
+            "HOST": host,
+            "PORT": port,
+            "SSL": int(bool(self.keyfile)),
+            "CERT_PUB": self.certfile or self.keyfile,
+        }
 
     @exported
     def uptime(self):
@@ -93,14 +108,41 @@ class ZephyrXMLRPCServer(SimpleXMLRPCServer, object):
             print "exiting..."
             self.messenger.quit()
 
+def parse_args():
+    import argparse
+    parser = argparse.ArgumentParser(description="A server for receiving, \
+                                      storing, sending, and searching zephyrs \
+                                      over XMLRPC.")
+
+    parser.add_argument('-s', '--ssl',
+                        dest='ssl',
+                        default=False,
+                        const=True,
+                        action='store_const')
+
+    parser.add_argument('-k', '--keyfile',
+                        dest='keyfile',
+                        action="store",
+                        default=DEFAULT_SERVER_KEY)
+
+    parser.add_argument('-c', '--cert',
+                        dest='certfile',
+                        action="store",
+                        default=DEFAULT_SERVER_CERT)
+
+    parser.add_argument('-a', '--address',
+                        dest='host',
+                        action="store",
+                        default=DEFAULT_HOST)
+
+    parser.add_argument('-p', '--port',
+                        dest='port',
+                        action="store",
+                        type=int,
+                        default=DEFAULT_PORT)
+
+    return vars(parser.parse_args())
+
 
 if __name__ == '__main__':
-    if len(sys.argv) > 1:
-        host = sys.argv[1]
-        if len(sys.argv) > 2:
-            port = int(sys.argv[2] or DEFAULT_PORT)
-        else:
-            port = DEFAULT_PORT
-    else:
-        host = DEFAULT_HOST
-    ZephyrXMLRPCServer(host, port).serve_forever()
+    runserver(ZephyrXMLRPCServer(**parse_args()))

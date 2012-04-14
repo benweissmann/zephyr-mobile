@@ -1,0 +1,173 @@
+#!/bin/bash
+THIS_DIR="$(dirname ${BASH_SOURCE[0]})"
+PATH="$PATH:$THIS_DIR"
+DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/zephyr-server/"
+SOCKET="$DATA_DIR/dtach_socket"
+INFO="$DATA_DIR/info"
+
+SHARE_PATH="$THIS_DIR/../data"
+
+SERVER_PRIV="$DATA_DIR/certs/server_private.pem" 
+SERVER_PUB="$DATA_DIR/certs/server_public.pem" 
+
+echo "ZSERV HELLO"
+trap "echo 'ZSERV BYE'" EXIT
+
+die() {
+    echo "ZSERV ERROR $*"
+    exit 1
+}
+
+if [[ ! -d $DATA_DIR ]]; then
+    mkdir --mode=700 "$DATA_DIR"
+fi
+
+[[ "$(stat -c '%a %u %F' $DATA_DIR)" == "700 $UID directory" ]] || die "Unsecure data directory."
+
+
+isrunning() {
+    # First try to send it a friendly sigterm
+    if [[ -e "$INFO" ]]; then
+        . $INFO
+        # Check for a pidfile, a running proc, and a lock
+        # This doesn't guarentee anything but is fairly good evidence that the
+        # server is running.
+        if [[ -n "$PID" ]] && kill -0 $PID 2>/dev/null && ! flock -xn $INFO true; then
+            return 0
+        fi
+        rm -f "$INFO" # side effect but useful.
+    fi
+    return 1
+}
+
+dokill() {
+    PID=${1}
+    TIME=${2:-5}
+    kill -INT $PID 2>/dev/null || return # Not running
+    while [[ $TIME -gt 0 ]] && kill -0 $PID 2>/dev/null; do
+        let TIME--
+        sleep 1
+    done
+    # Really kill it.
+    kill -TERM $PID 2>/dev/null && sleep 1 # Wait a second if still alive.
+    kill -KILL $PID 2>/dev/null
+}
+
+killserver() {
+    # Kill the server
+    if [[ -e "$INFO" ]]; then
+        . $INFO
+        [[ -n "$PID" ]] && dokill $PID
+    fi
+     
+    # Deal with a failing dtach
+    if [[ -S "$SOCKET" ]]; then
+        PID="$(lsof -u $UID -t "$SOCKET" 2>/dev/null)"
+        [[ -n "$PID" ]] && dokill $PID
+        [[ -e "$SOCKET" ]] && rm -f $SOCKET
+    fi
+    return 0
+}
+
+cleanup_certs() {
+    for file in "server_public.pem" "server_private.pem" "server_public.bks"; do
+        f="$DATA_DIR/certs/$file"
+        [[ -e $f ]] && rm -f "$f"
+    done
+    [[ -d "$DATA_DIR/certs/" ]] || mkdir "$DATA_DIR/certs"
+}
+
+mkcerts() {
+    openssl genrsa -out $SERVER_PRIV 2048 >/dev/null 2>&1
+    openssl req -subj "/CN=ZSERV/" -new -x509 -key $SERVER_PRIV -out $SERVER_PUB >/dev/null 2>&1
+}
+
+getbks() {
+    [[ -e "$1" ]] || die "The server failed to specify the public cert."
+    CERT_BKS="$1.bks"
+    KEYSTORE="$1.keystore"
+
+    if [[ ! -e "$CERT_BKS" ]]; then
+        yes | keytool -importcert -trustcacerts -keystore $KEYSTORE \
+            -storetype bks -storepass "<BLANK>" -file $1 \
+            -provider org.bouncycastle.jce.provider.BouncyCastleProvider \
+            -providerpath $SHARE_PATH/bcprov/bcprov.jar >/dev/null 2>&1
+
+        keytool -exportcert -rfc -keystore $KEYSTORE \
+            -storetype bks -storepass "<BLANK>"  \
+            -provider org.bouncycastle.jce.provider.BouncyCastleProvider \
+            -providerpath $SHARE_PATH/bcprov/bcprov.jar > $CERT_BKS 2>/dev/null
+        rm $KEYSTORE
+    fi
+    echo "ZSERV CERT BEGIN"
+    cat "$CERT_BKS"
+    echo "ZSERV CERT END"
+}
+
+runserver() {
+    if ! isrunning; then
+        if [[ ! -r "$DATA_DIR/certs/server_public.pem" ]]; then
+            cleanup_certs
+            mkcerts
+        fi
+        dtach -n $SOCKET -e "" zserv --ssl --key=$SERVER_PRIV --cert=$SERVER_PUB \
+            || die "Failed to start server."
+    fi
+
+    # Wait for the file to exist and be readable.
+    TIME=5
+    while [[ ! -r $INFO ]]; do
+        if [[ ! $TIME -gt 0 ]]; then
+            return 1
+        fi
+        let TIME--
+        sleep 1
+    done
+
+    # Wait for the exclusive lock to be dropped.
+    flock -s $INFO true
+    return 0
+}
+
+info() {
+    if ! isrunning; then
+        echo "ZSERV INFO FAILED"
+        return
+    fi
+    . $INFO
+    echo "ZSERV INFO BEGIN"
+    echo "ZSERV VERSION $VERSION"
+    echo "ZSERV HOST $HOST"
+    echo "ZSERV PORT $PORT"
+    getbks $CERT_PUB
+    echo "ZSERV INFO END"
+}
+
+
+while read line; do
+    case "$line" in
+        "START")
+            runserver && echo "ZSERV START SUCCESS" || echo "ZSERV START FAILURE"
+            ;;
+        "INFO")
+            info
+            ;;
+        "STOP")
+            killserver && echo "ZSERV STOP SUCCESS" || echo "ZSERV STOP FAILURE"
+            ;;
+        "ISRUNNING")
+            isrunning && echo "ZSERV ISRUNNING TRUE" || echo "ZSERV ISRUNNING FALSE"
+            ;;
+        "RESTART")
+            {
+                killserver && runserver
+            } && echo "ZSERV RESTART SUCCESS" || echo "ZSERV RESTART FAILURE"
+            ;;
+        "BYE")
+            break;
+            ;;
+        *)
+            echo "ZSERV INVALID_INPUT"
+            ;;
+    esac
+done
