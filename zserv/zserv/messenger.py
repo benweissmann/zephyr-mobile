@@ -49,7 +49,7 @@ def open_or_create_db(path):
         # Create the file wit 0600 permissions. If the user wants to change
         # this, that's there problem.
         if not os.path.isfile(path):
-            os.close(os.open(path, os.O_CREATE, 0600))
+            os.close(os.open(path, os.O_CREAT, 0600))
 
     # Multi-threading ... should be safe
     db = sqlite3.connect(path, detect_types=sqlite3.PARSE_DECLTYPES, check_same_thread=False)
