@@ -31,7 +31,7 @@ def assertCompatable(version):
 
 def assertAuthenticated(token):
     if not checkToken(token) or not checkTickets():
-        raise AuthenticationRequired()
+        raise AuthenticationRequired("Invalid token.")
 
 def checkTickets():
     return call(["klist","-s"]) == 0
@@ -63,7 +63,7 @@ def authenticate(username, password):
     if getTickets(username, password):
         return makeToken()
     else:
-        raise AuthenticationRequired()
+        raise AuthenticationRequired("Invalid credentials")
 
 def runserver(server):
     import fcntl, os, signal
