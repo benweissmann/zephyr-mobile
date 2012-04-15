@@ -2,6 +2,7 @@
 # encoding: utf-8
 from common import exported
 import settings
+import os
 
 try:
     import zephyr
@@ -9,6 +10,8 @@ except ImportError:
     import test_zephyr as zephyr
 
 __all__ = ("SubscriptionManager",)
+
+TIMEOUT = 3
 
 def parse_sub(s):
         s = s[:s.find("#")].strip()
@@ -37,14 +40,14 @@ class SubscriptionManager(object):
         self.load_or_create_zsubs()
 
     def load_or_create_zsubs(self):
-        try:
-            with open(self.zsubfile) as f:
-                for line in f.xreadlines():
-                    sub = parse_sub(line)
-                    if sub is not None:
-                        self.add(sub, save=False)
-        except IOError:
-            self.set(self.DEFAULT_SUBS)
+        if not os.path.isfile(self.zsubfile):
+            return self.set(self.DEFAULT_SUBS)
+
+        with open(self.zsubfile) as f:
+            for line in f.xreadlines():
+                sub = parse_sub(line)
+                if sub is not None:
+                    self.add(sub, save=False)
 
     def _add_submap(self, sub):
         """Add a subscription from the subscription matching map."""
