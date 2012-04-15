@@ -10,7 +10,7 @@ import java.util.List;
  * @author Ben Weissmann <bsw@mit.edu>
  */
 public final class ZephyrgramResultSet implements Iterable<Zephyrgram> {
-    private final Query query;
+    private final IQuery query;
     private final String filterId;
     private final int offset;
     final List<Zephyrgram> zephyrgrams;
@@ -23,7 +23,7 @@ public final class ZephyrgramResultSet implements Iterable<Zephyrgram> {
      * @param resultLength The number of results for the query, ignoring pagination
      * @param zephyrgrams  A list of Zephyrgrams on this page of the results
      */
-    public ZephyrgramResultSet(Query query, String filterId, int offset, List<Zephyrgram> zephyrgrams) {
+    public ZephyrgramResultSet(IQuery query, String filterId, int offset, List<Zephyrgram> zephyrgrams) {
         this.query = query;
         this.filterId = filterId;
         this.offset = offset;
@@ -41,7 +41,7 @@ public final class ZephyrgramResultSet implements Iterable<Zephyrgram> {
      * Returns the query used to request these results. We use this when refreshing
      * these results.
      */
-    public Query getQuery() {
+    public IQuery getQuery() {
         return query;
     }
     

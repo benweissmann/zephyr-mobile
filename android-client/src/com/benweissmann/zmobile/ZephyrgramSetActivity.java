@@ -13,7 +13,7 @@ import com.benweissmann.zmobile.service.ZephyrService.ZephyrBinder;
 import com.benweissmann.zmobile.service.callbacks.BinderCallback;
 import com.benweissmann.zmobile.service.callbacks.ZephyrCallback;
 import com.benweissmann.zmobile.service.callbacks.ZephyrStatusCallback;
-import com.benweissmann.zmobile.service.objects.Query;
+import com.benweissmann.zmobile.service.objects.IQuery;
 import com.benweissmann.zmobile.service.objects.ZephyrgramSet;
 
 import android.app.Activity;
@@ -248,10 +248,10 @@ public abstract class ZephyrgramSetActivity<T extends ZephyrgramSet> extends Act
         });
     }
     
-    protected void markRead(final Query query) {
+    protected void markRead(final IQuery iQuery) {
         ZephyrServiceBridge.getBinder(this, new BinderCallback() {
             public void run(ZephyrBinder binder, Runnable onComplete) {
-                binder.markRead(query, new ZephyrStatusCallback() {
+                binder.markRead(iQuery, new ZephyrStatusCallback() {
                     public void onSuccess() {
                         update();
                     }

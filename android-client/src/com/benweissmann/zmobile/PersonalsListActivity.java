@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.benweissmann.zmobile.components.ListHeader;
+import com.benweissmann.zmobile.service.ZephyrService;
 import com.benweissmann.zmobile.service.ZephyrService.ZephyrBinder;
 import com.benweissmann.zmobile.service.callbacks.ZephyrCallback;
 import com.benweissmann.zmobile.service.objects.Query;
@@ -17,6 +18,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ContextMenu.ContextMenuInfo;
+import android.widget.ListView;
 import android.widget.AdapterView.AdapterContextMenuInfo;
 
 public class PersonalsListActivity extends ZephyrgramSetActivity<ZephyrPersonals> {
@@ -69,7 +71,19 @@ public class PersonalsListActivity extends ZephyrgramSetActivity<ZephyrPersonals
         return breadcrumbs;
     }
     
-        @Override
+    @Override
+    protected void refreshHeaderViews(ListView listView, ArrayList<ZephyrPersonals> items) {
+        super.refreshHeaderViews(listView, items);
+        
+        for(int i = 0; i < items.size(); i++) {
+            if(items.get(i).getName().equalsIgnoreCase(ZephyrService.USER_NAME)) {
+                items.remove(i);
+                return;
+            }
+        }
+    }
+    
+    @Override
     public void onCreateContextMenu(ContextMenu menu, View v,
                                     ContextMenuInfo menuInfo) {
         super.onCreateContextMenu(menu, v, menuInfo);

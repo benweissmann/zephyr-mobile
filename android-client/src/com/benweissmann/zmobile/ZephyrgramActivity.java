@@ -13,10 +13,12 @@ import com.benweissmann.zmobile.service.ZephyrService.ZephyrBinder;
 import com.benweissmann.zmobile.service.callbacks.BinderCallback;
 import com.benweissmann.zmobile.service.callbacks.ZephyrCallback;
 import com.benweissmann.zmobile.service.callbacks.ZephyrStatusCallback;
+import com.benweissmann.zmobile.service.objects.IQuery;
 import com.benweissmann.zmobile.service.objects.Query;
 import com.benweissmann.zmobile.service.objects.Zephyrgram;
 import com.benweissmann.zmobile.service.objects.ZephyrgramResultSet;
 import com.benweissmann.zmobile.util.DomainStripper;
+import com.benweissmann.zmobile.util.QueryBuilder;
 
 import android.app.Activity;
 import android.content.Context;
@@ -45,7 +47,7 @@ import android.widget.Toast;
 public class ZephyrgramActivity extends Activity {
     public static final String QUERY_EXTRA = "zephyrgram_activity_query";
 
-    private Query query = null;
+    private IQuery query = null;
     private ZephyrgramResultSet startResultSet = null;
     private ZephyrgramResultSet endResultSet = null;
     private boolean fetching = false;
@@ -66,7 +68,7 @@ public class ZephyrgramActivity extends Activity {
 
         Bundle extras = getIntent().getExtras();
         if (extras != null) {
-            this.query = (Query) extras.getSerializable(QUERY_EXTRA);
+            this.query = (IQuery) extras.getSerializable(QUERY_EXTRA);
         }
 
         if (this.query == null) {
@@ -100,21 +102,22 @@ public class ZephyrgramActivity extends Activity {
         switch (item.getItemId()) {
         case R.id.zephyrgrams_list_menu_compose:
             Intent intent = new Intent(this, ComposeActivity.class);
+            Query query = this.query.queryArray()[0];
             
-            if(this.query.getCls() != null && this.query.getCls().equals(Zephyrgram.PERSONALS_CLASS)) {
+            if(query.getCls() != null && query.getCls().equals(Zephyrgram.PERSONALS_CLASS)) {
                 intent.putExtra(ComposeActivity.SELECT_PERSONAL_EXTRA, true);
                 
-                if(this.query.getSender() != null) {
-                    intent.putExtra(ComposeActivity.PERSONAL_TO_EXTRA, this.query.getSender());
+                if(query.getSender() != null) {
+                    intent.putExtra(ComposeActivity.PERSONAL_TO_EXTRA, query.getSender());
                 }
             }
             else {
-                if(this.query.getCls() != null) {
-                    intent.putExtra(ComposeActivity.CLASS_EXTRA, this.query.getCls());
+                if(query.getCls() != null) {
+                    intent.putExtra(ComposeActivity.CLASS_EXTRA, query.getCls());
                 }
                 
-                if(this.query.getInstance() != null) {
-                    intent.putExtra(ComposeActivity.INSTANCE_EXTRA, this.query.getInstance());
+                if(query.getInstance() != null) {
+                    intent.putExtra(ComposeActivity.INSTANCE_EXTRA, query.getInstance());
                 }
             }
             
@@ -453,38 +456,40 @@ public class ZephyrgramActivity extends Activity {
     private List<Breadcrumb> getBreadcrumbs() {
         List<Breadcrumb> breadcrumbs = new ArrayList<Breadcrumb>();
         
-        if(this.query.getCls() == null) {
+        Query query = this.query.queryArray()[0];
+        
+        if(query.getCls() == null) {
             // we're in Home -> All
             breadcrumbs.add(new Breadcrumb(getString(R.string.all_label), null));
         }
-        else if(this.query.getCls().equals(Zephyrgram.PERSONALS_CLASS)) {
+        else if(query.getCls().equals(Zephyrgram.PERSONALS_CLASS)) {
             // we're in Home -> Personals
             Intent personalsIntent = new Intent(this, PersonalsListActivity.class);
             breadcrumbs.add(new Breadcrumb(getString(R.string.personal_label),
                                            personalsIntent));
             
-            if(this.query.getSender() == null) {
+            if(query.getSender() == null) {
                 // we're in Home -> Personals -> All
                 breadcrumbs.add(new Breadcrumb(getString(R.string.all_label), null));
             }
             else {
                 // we're in Home -> Personals -> <sender>
-                breadcrumbs.add(new Breadcrumb(DomainStripper.stripDomain(this.query.getSender()), null));
+                breadcrumbs.add(new Breadcrumb(DomainStripper.stripDomain(query.getSender()), null));
             }
         }
         else {
             // we're in Home -> <class>
             Intent classIntent = new Intent(this, InstanceListActivity.class);
-            classIntent.putExtra(InstanceListActivity.ZEPHYR_CLASS_EXTRA, this.query.getCls());
-            breadcrumbs.add(new Breadcrumb(this.query.getCls(), classIntent));
+            classIntent.putExtra(InstanceListActivity.ZEPHYR_CLASS_EXTRA, query.getCls());
+            breadcrumbs.add(new Breadcrumb(query.getCls(), classIntent));
              
-            if(this.query.getInstance() == null) {
+            if(query.getInstance() == null) {
                 // we're in Home -> <class> -> All
                 breadcrumbs.add(new Breadcrumb(getString(R.string.all_label), null));
             }
             else {
                 // we're in Home -> <class> -> <instance>
-                breadcrumbs.add(new Breadcrumb(this.query.getInstance(), null));
+                breadcrumbs.add(new Breadcrumb(query.getInstance(), null));
             }
         }
         
@@ -578,14 +583,14 @@ public class ZephyrgramActivity extends Activity {
             this.goToZephyrgrams(new Query().cls(z.getCls()).instance(z.getInstance()));
             return true;
         case R.id.zephyrgram_list_show_personals:
-            this.goToZephyrgrams(new Query().cls(Zephyrgram.PERSONALS_CLASS).sender(z.getRawSender()));
+            this.goToZephyrgrams(QueryBuilder.personalQuery(z.getRawSender()));
             return true;
         default:
             return super.onContextItemSelected(item);
         }
     }
     
-    private void goToZephyrgrams(Query q) {
+    private void goToZephyrgrams(IQuery q) {
         Intent intent = new Intent(this, ZephyrgramActivity.class);
         intent.putExtra(ZephyrgramActivity.QUERY_EXTRA, q);
         startActivityForResult(intent, 0);

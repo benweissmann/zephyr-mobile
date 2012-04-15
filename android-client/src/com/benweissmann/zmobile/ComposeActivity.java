@@ -176,14 +176,7 @@ public class ComposeActivity extends TabActivity {
         final Toast toast = Toast.makeText(this, getString(R.string.send_start_toast), Toast.LENGTH_SHORT);
         
         // disable send buttons to prevent double sending
-        runOnUiThread(new Runnable() {
-            public void run() {
-                Button personalSendButton = (Button) findViewById(R.id.compose_personal_send);
-                personalSendButton.setEnabled(false);
-                Button classSendButton = (Button) findViewById(R.id.compose_class_send);
-                classSendButton.setEnabled(false);
-            }
-        });
+        setSendEnabled(false);
         
         
         ZephyrServiceBridge.getBinder(this, new BinderCallback() {
@@ -230,10 +223,22 @@ public class ComposeActivity extends TabActivity {
                                getString(R.string.send_fail_toast),
                                Toast.LENGTH_SHORT).show();
                 
+                setSendEnabled(true);
+            }
+        });
+    }
+    
+    private void setSendEnabled(final boolean enabled) {
+        runOnUiThread(new Runnable() {
+            public void run() {
                 Button personalSendButton = (Button) findViewById(R.id.compose_personal_send);
-                personalSendButton.setEnabled(true);
+                if(personalSendButton != null) {
+                    personalSendButton.setEnabled(enabled);
+                }
                 Button classSendButton = (Button) findViewById(R.id.compose_class_send);
-                classSendButton.setEnabled(true);
+                if(classSendButton != null) {
+                    classSendButton.setEnabled(enabled);
+                }
             }
         });
     }
