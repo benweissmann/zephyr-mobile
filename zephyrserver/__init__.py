@@ -1,1 +1,1 @@
-from xmlrpc import ZephyrXMLRPCServer
+VERSION = 1
