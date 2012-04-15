@@ -4,5 +4,5 @@ public interface ZephyrgramSet {
     public String getName();
     public int getUnreadCount();
     public int getTotalCount();
-    public Query getQuery();
+    public IQuery getQuery();
 }

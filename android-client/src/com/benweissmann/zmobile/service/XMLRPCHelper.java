@@ -15,13 +15,28 @@ import de.timroes.axmlrpc.XMLRPCServerException;
 public class XMLRPCHelper {
     private final XMLRPCClient client;
     private final static int TIMEOUT_SECONDS = 15;
+    private final static int MIN_SERVER_VERSION = 1;
+    private String authToken = null;
     
     public XMLRPCHelper(XMLRPCClient client) {
         this.client = client;
+        this.authToken = "foo";
+    }
+    
+    private Object[] addExtraParams(Object[] params) {
+        Object[] newParams = new Object[params.length + 2];
+        
+        newParams[0] = MIN_SERVER_VERSION;
+        newParams[1] = this.authToken;
+        for(int i = 0; i < params.length; i++) {
+            newParams[i+2] = params[i];
+        }
+        
+        return newParams;
     }
     
     public void callAsync(XMLRPCCallback callback, String method, Object... params) {
-        new AsyncCall(callback, method, params).run();
+        new AsyncCall(callback, method, addExtraParams(params)).run();
     }
     
     private class AsyncCall {

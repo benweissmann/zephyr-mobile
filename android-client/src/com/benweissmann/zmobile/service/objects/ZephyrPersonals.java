@@ -3,6 +3,7 @@ package com.benweissmann.zmobile.service.objects;
 import java.io.Serializable;
 
 import com.benweissmann.zmobile.util.DomainStripper;
+import com.benweissmann.zmobile.util.QueryBuilder;
 
 /**
  * An immutable class representing a set of personals from a particular
@@ -20,8 +21,8 @@ public final class ZephyrPersonals implements Serializable, ZephyrgramSet {
         this.totalCount = totalCount;
     }
     
-    public Query getQuery() {
-        return new Query().cls(Zephyrgram.PERSONALS_CLASS).sender(sender);
+    public IQuery getQuery() {
+        return QueryBuilder.personalQuery(sender);
     }
     
     public String getName() {
