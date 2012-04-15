@@ -3,4 +3,4 @@
 	url = https://github.com/Stebalien/python-zephyr.git
 [submodule "android-client/aXMLRPC"]
 	path = android-client/aXMLRPC
-	url = https://github.com/timroes/aXMLRPC.git
+	url = git@github.com:benweissmann/aXMLRPC.git
