@@ -1,19 +1,24 @@
-class VersionMismatchError(Exception):
+from xmlrpclib import Fault
+
+class BaseZServError(Fault):
+    ERRNO = 1
+    def __init__(self, message=""):
+        super(BaseZServError, self).__init__(self.ERRNO, message)
+
+
+class VersionMismatchError(BaseZServError):
     """
     Raised if the server version is less than the minimum requested by the
     client.
     """
+    ERRNO = 2
     def __init__(self, server, client):
         super(VersionMismatchError, self).__init__(
-            "Server version '%d' is less than the minimum requested server version '%d'." % (server, client)
+            "Server version '%d' is less than the minimum requested server version '%d'." % (server, client),
         )
 
-class InvalidAuthenticationToken(Exception):
-    """
-    Raised if the client is not properly authenticated with the server.
-    """
-
-class AuthenticationRequired(Exception):
+class AuthenticationRequired(BaseZServError):
     """
     Raised if the clients authentication token has expired.
     """
+    ERRNO = 3
