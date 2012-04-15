@@ -54,7 +54,7 @@ dokill() {
     kill -KILL $PID 2>/dev/null
 }
 
-killserver() {
+stopserver() {
     # Kill the server
     isrunninghere || return 1
     dokill $PID
@@ -66,6 +66,15 @@ killserver() {
         [[ -e "$SOCKET" ]] && rm -f $SOCKET
     fi
     return 0
+}
+
+resetserver() {
+    pkill -INT -u $UID -f '^zserv ' && {
+        sleep 5
+        pkill -9 -u $UID -f '^zserv '
+    }
+    rm -rf "$DATA_DIR/certs" 2>/dev/null || true
+    rm -f "$DATA_DIR/info" 2>/dev/null || true
 }
 
 cleanup_certs() {
@@ -146,7 +155,7 @@ while read line; do
             info
             ;;
         "STOP")
-            killserver && echo "!ZSERV STOP SUCCESS" || echo "!ZSERV STOP FAILURE"
+            stopserver && echo "!ZSERV STOP SUCCESS" || echo "!ZSERV STOP FAILURE"
             ;;
         "ISRUNNING")
             isrunning && echo "!ZSERV ISRUNNING TRUE" || echo "!ZSERV ISRUNNING FALSE"
@@ -156,8 +165,12 @@ while read line; do
             ;;
         "RESTART")
             {
-                killserver && runserver
+                stopserver && runserver
             } && echo "!ZSERV RESTART SUCCESS" || echo "!ZSERV RESTART FAILURE"
+            ;;
+        "RESET")
+            resetserver
+            echo "!ZSERV RESET DONE"
             ;;
         "BYE")
             break;
