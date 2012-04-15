@@ -2,7 +2,9 @@
 THIS_DIR="$(dirname ${BASH_SOURCE[0]})"
 PATH="$PATH:$THIS_DIR"
 DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/zephyr-server/"
-SOCKET="$DATA_DIR/dtach_socket"
+# This should be safe as dtach makes its own socket and will fail if one
+# exists. Dtach's socket has safe permissions regardless of umask.
+SOCKET="$(mktemp -u -t zserv_dtach_socket_$UID.XXXXXX)"
 INFO="$DATA_DIR/info"
 
 SHARE_PATH="$THIS_DIR/../data"
@@ -26,16 +28,15 @@ fi
 
 
 isrunning() {
-    # First try to send it a friendly sigterm
-    if [[ -e "$INFO" ]]; then
+    [[ -e "$INFO" ]] && ! flock -xn $INFO true
+    return $?
+}
+
+isrunninghere() {
+    if isrunning; then
         . $INFO
-        # Check for a pidfile, a running proc, and a lock
-        # This doesn't guarentee anything but is fairly good evidence that the
-        # server is running.
-        if [[ -n "$PID" ]] && kill -0 $PID 2>/dev/null && ! flock -xn $INFO true; then
-            return 0
-        fi
-        rm -f "$INFO" # side effect but useful.
+        kill -0 $PID 2>/dev/null
+        return $?
     fi
     return 1
 }
@@ -55,10 +56,8 @@ dokill() {
 
 killserver() {
     # Kill the server
-    if [[ -e "$INFO" ]]; then
-        . $INFO
-        [[ -n "$PID" ]] && dokill $PID
-    fi
+    isrunninghere || return 1
+    dokill $PID
      
     # Deal with a failing dtach
     if [[ -S "$SOCKET" ]]; then
@@ -151,6 +150,9 @@ while read line; do
             ;;
         "ISRUNNING")
             isrunning && echo "!ZSERV ISRUNNING TRUE" || echo "!ZSERV ISRUNNING FALSE"
+            ;;
+        "ISRUNNINGHERE")
+            isrunninghere && echo "!ZSERV ISRUNNINGHERE TRUE" || echo "!ZSERV ISRUNNINGHERE FALSE"
             ;;
         "RESTART")
             {
