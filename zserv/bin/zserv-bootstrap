@@ -4,7 +4,6 @@ export PATH="$PATH:$THIS_DIR"
 DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/zephyr-server/"
 # This should be safe as dtach makes its own socket and will fail if one
 # exists. Dtach's socket has safe permissions regardless of umask.
-SOCKET="$(mktemp -u -t zserv_dtach_socket_$UID.XXXXXX)"
 INFO="$DATA_DIR/info"
 
 SHARE_PATH="$THIS_DIR/../data"
@@ -59,12 +58,6 @@ stopserver() {
     isrunninghere || return 1
     dokill $PID
      
-    # Deal with a failing dtach
-    if [[ -S "$SOCKET" ]]; then
-        PID="$(lsof -u $UID -t "$SOCKET" 2>/dev/null)"
-        [[ -n "$PID" ]] && dokill $PID
-        [[ -e "$SOCKET" ]] && rm -f $SOCKET
-    fi
     [[ -e $INFO ]] && rm -f $INFO # make sure that info is removed
     return 0
 }
@@ -115,7 +108,7 @@ runserver() {
         fi
         (
             cd $THIS_DIR
-            ./zserv-dtach $SOCKET --ssl --key=$SERVER_PRIV --cert=$SERVER_PUB || die "Failed to start server."
+            ./zserv-dtach --ssl --key=$SERVER_PRIV --cert=$SERVER_PUB || die "Failed to start server."
         )
     fi
 
