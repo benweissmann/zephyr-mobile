@@ -1,7 +1,7 @@
 from functools import wraps
 from . import VERSION as server_version
 from exceptions import VersionMismatchError, AuthenticationRequired
-from subprocess import call, Popen
+from subprocess import call, Popen, PIPE
 from settings import AUTH_TIMEOUT
 from time import time
 from uuid import uuid4 as uuid
@@ -46,7 +46,7 @@ def checkToken(token):
 def makeToken():
     now = time()
     # Clean up old tokens
-    for token, timestamp in TOKENS:
+    for token, timestamp in TOKENS.iteritems():
         if now-timestamp > AUTH_TIMEOUT:
             del TOKENS[token]
 
@@ -56,7 +56,12 @@ def makeToken():
     return token
 
 def getTickets(username, password):
-    p = Popen(["kinit", "-R", "-F", "-l7d", username], stdout=open(os.devnull, "w"), stderr=open(os.devnull, "w"))
+    p = Popen([
+        "kinit",
+        "-F",
+        "-l7d",
+        username
+    ], stdin=PIPE, stdout=open(os.devnull, "w"), stderr=open(os.devnull, "w"))
     p.communicate(password)
     return p.wait() == 0
 
