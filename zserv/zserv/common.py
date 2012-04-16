@@ -1,11 +1,12 @@
 from functools import wraps
 from . import VERSION as server_version
 from exceptions import VersionMismatchError, AuthenticationRequired
-from subprocess import call, Popen
+from subprocess import call, Popen, PIPE
 from settings import AUTH_TIMEOUT
 from time import time
 from uuid import uuid4 as uuid
 from settings import INFO_FILE
+import os
 
 TOKENS = {}
 
@@ -31,10 +32,10 @@ def assertCompatable(version):
 
 def assertAuthenticated(token):
     if not checkToken(token) or not checkTickets():
-        raise AuthenticationRequired()
+        raise AuthenticationRequired("Invalid token.")
 
 def checkTickets():
-    return call(["klist","-s"]) == 0
+    return call(["klist","-s"], stdout=open(os.devnull, "w"), stderr=open(os.devnull, "w")) == 0
 
 def checkToken(token):
     try:
@@ -45,17 +46,22 @@ def checkToken(token):
 def makeToken():
     now = time()
     # Clean up old tokens
-    for token, timestamp in TOKENS:
+    for token, timestamp in TOKENS.iteritems():
         if now-timestamp > AUTH_TIMEOUT:
             del TOKENS[token]
 
     # Create the new one
-    token = uuid()
+    token = str(uuid())
     TOKENS[token] = now
     return token
 
 def getTickets(username, password):
-    p = Popen(["kinit", "-f", username])
+    p = Popen([
+        "kinit",
+        "-F",
+        "-l7d",
+        username
+    ], stdin=PIPE, stdout=open(os.devnull, "w"), stderr=open(os.devnull, "w"))
     p.communicate(password)
     return p.wait() == 0
 
@@ -63,7 +69,7 @@ def authenticate(username, password):
     if getTickets(username, password):
         return makeToken()
     else:
-        raise AuthenticationRequired()
+        raise AuthenticationRequired("Invalid credentials")
 
 def runserver(server):
     import fcntl, os, signal

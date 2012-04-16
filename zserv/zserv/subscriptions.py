@@ -2,6 +2,7 @@
 # encoding: utf-8
 from common import exported
 import settings
+import os
 
 try:
     import zephyr
@@ -9,6 +10,10 @@ except ImportError:
     import test_zephyr as zephyr
 
 __all__ = ("SubscriptionManager",)
+
+TIMEOUT = 3
+# TODO: When we fix the nuking zsubs issue, set save=True
+SAVE=False
 
 def parse_sub(s):
         s = s[:s.find("#")].strip()
@@ -37,14 +42,14 @@ class SubscriptionManager(object):
         self.load_or_create_zsubs()
 
     def load_or_create_zsubs(self):
-        try:
-            with open(self.zsubfile) as f:
-                for line in f.xreadlines():
-                    sub = parse_sub(line)
-                    if sub is not None:
-                        self.add(sub, save=False)
-        except IOError:
-            self.set(self.DEFAULT_SUBS)
+        if not os.path.isfile(self.zsubfile):
+            return self.set(self.DEFAULT_SUBS)
+
+        with open(self.zsubfile) as f:
+            for line in f.xreadlines():
+                sub = parse_sub(line)
+                if sub is not None:
+                    self.add(sub, save=False)
 
     def _add_submap(self, sub):
         """Add a subscription from the subscription matching map."""
@@ -68,7 +73,7 @@ class SubscriptionManager(object):
         return list(self.subscriptions)
 
     @exported
-    def set(self, subscriptions, save=True):
+    def set(self, subscriptions, save=SAVE):
         """Set the subscriptions."""
         self.clear()
         self.subscriptions.update(subscriptions)
@@ -80,7 +85,7 @@ class SubscriptionManager(object):
 
 
     @exported
-    def clear(self, save=True):
+    def clear(self, save=SAVE):
         """Clear the subscriptions."""
         self.subscriptions.clear()
         self.submap.clear()
@@ -89,7 +94,7 @@ class SubscriptionManager(object):
         return True
 
     @exported
-    def remove(self, subscription, save=True):
+    def remove(self, subscription, save=SAVE):
         """Remove the given subscription."""
         subscription = tuple(subscription)
         try:
@@ -102,7 +107,7 @@ class SubscriptionManager(object):
         return True
 
     @exported
-    def add(self, subscription, save=True):
+    def add(self, subscription, save=SAVE):
         """Add the given subscription."""
         subscription = tuple(subscription)
         if subscription in self.subscriptions:
@@ -115,7 +120,7 @@ class SubscriptionManager(object):
                 f.write(",".join(subscription) + "\n")
 
     @exported
-    def removeAll(self, subscriptions, save=True):
+    def removeAll(self, subscriptions, save=SAVE):
         """Remove all given subscriptions."""
         subscriptions = self.intersection(tuple(s) for s in subscriptions)
         if not subscriptions:
@@ -128,7 +133,7 @@ class SubscriptionManager(object):
         return len(subscriptions)
 
     @exported
-    def addAll(self, subscriptions, save=True):
+    def addAll(self, subscriptions, save=SAVE):
         """Add all given subscriptions."""
         subscriptions = set(tuple(s) for s in subscriptions) - self.subscriptions
         if not subscriptions:
