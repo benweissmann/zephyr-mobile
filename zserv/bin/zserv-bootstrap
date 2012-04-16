@@ -154,11 +154,7 @@ get() {
             echo "!ZSERV HOST $HOST" ;;
         "PORT")
             echo "!ZSERV PORT $PORT" ;;
-        "CERT")
-            echo "!ZSERV CERT BEGIN"
-            getbks $CERT_PUB
-            echo "!ZSERV CERT END"
-            ;;
+        "CERT") getbks $CERT_PUB ;;
         *)
             echo "!ZSERV GET $1 INVALID"
             ;;
