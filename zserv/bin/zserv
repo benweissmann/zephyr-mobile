@@ -5,6 +5,3 @@ export PYTHONPATH="../:../../python-zephyr:../../argparse-1.2.1-py2.6.egg"
 
 PYTHON=${PYTHON:-python}
 exec -a zserv $PYTHON -m zserv.xmlrpc $@
-    
-
-
