@@ -22,3 +22,6 @@ class AuthenticationRequired(BaseZServError):
     Raised if the clients authentication token has expired.
     """
     ERRNO = 3
+
+class ServerKilled(BaseZServError):
+    ERRNO = 4

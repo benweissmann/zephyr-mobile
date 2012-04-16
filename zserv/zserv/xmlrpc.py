@@ -4,10 +4,10 @@ from messenger import Messenger
 from time import time
 from common import exported, assertCompatable, assertAuthenticated, authenticate, runserver
 import preferences
-import os
+import os, ssl
 from . import VERSION
 from settings import DATA_DIR
-import ssl
+from exceptions import ServerKilled
 
 DEFAULT_PORT = 0
 DEFAULT_HOST = "0.0.0.0"
@@ -48,30 +48,33 @@ class ZephyrXMLRPCServer(SimpleXMLRPCServer, object):
 
     def _dispatch(self, method, params):
         # Need to pop
-        params = list(params)
-        if method == "getServerVersion":
-            return VERSION
-        else:
-            try:
-                assertCompatable(params.pop(0))
-            except IndexError:
-                raise TypeError("Minimum version unspecified.")
+        try:
+            params = list(params)
+            if method == "getServerVersion":
+                return VERSION
+            else:
+                try:
+                    assertCompatable(params.pop(0))
+                except IndexError:
+                    raise TypeError("Minimum version unspecified.")
 
-        if method == "authenticate":
-            return authenticate(*params)
-        else:
-            try:
-                assertAuthenticated(params.pop(0))
-            except IndexError:
-                raise TypeError("No authentication token provided.")
+            if method == "authenticate":
+                return authenticate(*params)
+            else:
+                try:
+                    assertAuthenticated(params.pop(0))
+                except IndexError:
+                    raise TypeError("No authentication token provided.")
 
-        obj = self
-        for i in method.split('.'):
-            obj = getattr(obj, i)
-            if not getattr(obj, "_export", False):
-                raise AttributeError("Method not supported.")
+            obj = self
+            for i in method.split('.'):
+                obj = getattr(obj, i)
+                if not getattr(obj, "_export", False):
+                    raise AttributeError("Method not supported.")
 
-        return obj(*params)
+            return obj(*params)
+        except KeyboardInterrupt:
+            raise ServerKilled()
 
     def getInfo(self):
         host, port = self.socket.getsockname()
