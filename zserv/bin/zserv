@@ -1,7 +1,7 @@
 #!/bin/bash
 #FIXME: Path hack
 cd "$(dirname ${BASH_SOURCE[0]})"
-export PYTHONPATH="../:../../python-zephyr:../../argparse-1.2.1-py2.6.egg"
+export PYTHONPATH="../:../python-zephyr:../vendor/argparse-1.2.1-py2.6.egg"
 
 PYTHON=${PYTHON:-python}
 exec -a zserv $PYTHON -m zserv.xmlrpc $@
