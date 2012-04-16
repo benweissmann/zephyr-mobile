@@ -1,6 +1,6 @@
 #!/bin/bash
-THIS_DIR="$(dirname ${BASH_SOURCE[0]})"
-PATH="$PATH:$THIS_DIR"
+THIS_DIR="$(readlink -f $(dirname ${BASH_SOURCE[0]}))"
+export PATH="$PATH:$THIS_DIR"
 DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/zephyr-server/"
 # This should be safe as dtach makes its own socket and will fail if one
 # exists. Dtach's socket has safe permissions regardless of umask.
@@ -65,6 +65,7 @@ stopserver() {
         [[ -n "$PID" ]] && dokill $PID
         [[ -e "$SOCKET" ]] && rm -f $SOCKET
     fi
+    [[ -e $INFO ]] && rm -f $INFO # make sure that info is removed
     return 0
 }
 
@@ -112,8 +113,10 @@ runserver() {
             cleanup_certs
             mkcerts
         fi
-        dtach -n $SOCKET -e "" zserv --ssl --key=$SERVER_PRIV --cert=$SERVER_PUB \
-            || die "Failed to start server."
+        (
+            cd $THIS_DIR
+            ./zserv-dtach $SOCKET --ssl --key=$SERVER_PRIV --cert=$SERVER_PUB || die "Failed to start server."
+        )
     fi
 
     # Wait for the file to exist and be readable.
@@ -145,9 +148,37 @@ info() {
     echo "!ZSERV INFO END"
 }
 
+get() {
+    if ! isrunning; then
+        echo "!ZSERV GET FAILED"
+        return
+    fi
+    . $INFO
+    case $1 in
+        "VERSION")
+            echo "!ZSERV VERSION $VERSION" ;;
+        "HOST")
+            echo "!ZSERV HOST $HOST" ;;
+        "PORT")
+            echo "!ZSERV PORT $PORT" ;;
+        "CERT")
+            echo "!ZSERV CERT BEGIN"
+            getbks $CERT_PUB
+            echo "!ZSERV CERT END"
+            ;;
+        *)
+            echo "!ZSERV GET $1 INVALID"
+            ;;
+    esac
+}
+
+
+
+
 
 while read line; do
-    case "$line" in
+    set $line
+    case "$1" in
         "START")
             runserver && echo "!ZSERV START SUCCESS" || echo "!ZSERV START FAILURE"
             ;;
@@ -168,6 +199,9 @@ while read line; do
                 stopserver && runserver
             } && echo "!ZSERV RESTART SUCCESS" || echo "!ZSERV RESTART FAILURE"
             ;;
+        "GET")
+            shift
+            get $@ ;;
         "RESET")
             resetserver
             echo "!ZSERV RESET DONE"
