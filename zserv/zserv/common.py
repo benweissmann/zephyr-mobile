@@ -1,14 +1,8 @@
 from functools import wraps
 from . import VERSION as server_version
 from exceptions import VersionMismatchError, AuthenticationRequired
-from subprocess import call, Popen, PIPE
-from settings import AUTH_TIMEOUT
-from time import time
-from uuid import uuid4 as uuid
 from settings import INFO_FILE
-import os
-
-TOKENS = {}
+from auth import checkToken, checkTickets, RenewTicketsTimer
 
 def exported(obj):
     obj._export = True
@@ -34,43 +28,6 @@ def assertAuthenticated(token):
     if not checkToken(token) or not checkTickets():
         raise AuthenticationRequired("Invalid token.")
 
-def checkTickets():
-    return call(["klist","-s"], stdout=open(os.devnull, "w"), stderr=open(os.devnull, "w")) == 0
-
-def checkToken(token):
-    try:
-        return (time() - TOKENS[token]) <= AUTH_TIMEOUT
-    except KeyError:
-        return False
-
-def makeToken():
-    now = time()
-    # Clean up old tokens
-    for token, timestamp in TOKENS.iteritems():
-        if now-timestamp > AUTH_TIMEOUT:
-            del TOKENS[token]
-
-    # Create the new one
-    token = str(uuid())
-    TOKENS[token] = now
-    return token
-
-def getTickets(username, password):
-    p = Popen([
-        "kinit",
-        "-F",
-        "-l7d",
-        username
-    ], stdin=PIPE, stdout=open(os.devnull, "w"), stderr=open(os.devnull, "w"))
-    p.communicate(password)
-    return p.wait() == 0
-
-def authenticate(username, password):
-    if getTickets(username, password):
-        return makeToken()
-    else:
-        raise AuthenticationRequired("Invalid credentials")
-
 def runserver(server):
     import fcntl, os, signal
 
@@ -90,13 +47,16 @@ def runserver(server):
         print "Failed to create info file."
         exit(1)
     
+    ticket_timer = RenewTicketsTimer(server.shutdown)
     try:
         fobj = os.fdopen(fd, "w")
         fobj.writelines("%s='%s'\n" % i for i in info_contents.iteritems())
         fobj.flush()
         fcntl.flock(fd, fcntl.LOCK_SH|fcntl.LOCK_NB)
+        ticket_timer.start()
         server.serve_forever()
     finally:
+        ticket_timer.stop()
         fobj.close()
         os.remove(INFO_FILE)
 

@@ -2,7 +2,8 @@ from SimpleXMLRPCServer import SimpleXMLRPCServer
 from subscriptions import SubscriptionManager
 from messenger import Messenger
 from time import time
-from common import exported, assertCompatable, assertAuthenticated, authenticate, runserver
+from common import exported, assertCompatable, assertAuthenticated, runserver
+from auth import authenticate
 import preferences
 import os, ssl
 from . import VERSION
