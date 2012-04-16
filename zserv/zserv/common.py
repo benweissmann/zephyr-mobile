@@ -51,7 +51,7 @@ def makeToken():
             del TOKENS[token]
 
     # Create the new one
-    token = uuid()
+    token = str(uuid())
     TOKENS[token] = now
     return token
 
