@@ -145,9 +145,37 @@ info() {
     echo "!ZSERV INFO END"
 }
 
+get() {
+    if ! isrunning; then
+        echo "!ZSERV GET FAILED"
+        return
+    fi
+    . $INFO
+    case $1 in
+        "VERSION")
+            echo "!ZSERV VERSION $VERSION" ;;
+        "HOST")
+            echo "!ZSERV HOST $HOST" ;;
+        "PORT")
+            echo "!ZSERV PORT $PORT" ;;
+        "CERT")
+            echo "!ZSERV CERT BEGIN"
+            getbks $CERT_PUB
+            echo "!ZSERV CERT END"
+            ;;
+        *)
+            echo "!ZSERV GET $1 INVALID"
+            ;;
+    esac
+}
+
+
+
+
 
 while read line; do
-    case "$line" in
+    set $line
+    case "$1" in
         "START")
             runserver && echo "!ZSERV START SUCCESS" || echo "!ZSERV START FAILURE"
             ;;
@@ -168,6 +196,9 @@ while read line; do
                 stopserver && runserver
             } && echo "!ZSERV RESTART SUCCESS" || echo "!ZSERV RESTART FAILURE"
             ;;
+        "GET")
+            shift
+            get $@ ;;
         "RESET")
             resetserver
             echo "!ZSERV RESET DONE"
