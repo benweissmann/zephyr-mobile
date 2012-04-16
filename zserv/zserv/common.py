@@ -6,6 +6,7 @@ from settings import AUTH_TIMEOUT
 from time import time
 from uuid import uuid4 as uuid
 from settings import INFO_FILE
+import os
 
 TOKENS = {}
 
@@ -34,7 +35,7 @@ def assertAuthenticated(token):
         raise AuthenticationRequired("Invalid token.")
 
 def checkTickets():
-    return call(["klist","-s"]) == 0
+    return call(["klist","-s"], stdout=open(os.devnull, "w"), stderr=open(os.devnull, "w")) == 0
 
 def checkToken(token):
     try:
@@ -55,7 +56,7 @@ def makeToken():
     return token
 
 def getTickets(username, password):
-    p = Popen(["kinit", "-f", username])
+    p = Popen(["kinit", "-R", "-F", "-l7d", username], stdout=open(os.devnull, "w"), stderr=open(os.devnull, "w"))
     p.communicate(password)
     return p.wait() == 0
 
