@@ -47,4 +47,20 @@
 	<string name="load_failed">Failed to load data</string>
 	<string name="retry_button">Retry</string>
 	<string name="load_error_desc">Load Failed</string>
+	<string name="username_label">Username:</string>
+	<string name="password_label">Password:</string>
+	<string name="credentials_prompt_title">Enter Kerberos Identification</string>
+	<string name="submit">Submit</string>
+	<string name="cancel">Cancel</string>
+	<string name="remember_credentials_label">Remember Me?</string>
+	<string name="store_credentials_warning">
+	    If you do not choose \"Remember Me,\" you will
+	    have to re-enter your password every 24 hours.
+	    If you do choose \"Remember Me,\" your username and password will be stored
+	    on your device\'s internal storage.
+	    They will be protected from other applications, but applications running
+	    as root on a rooted phone may be able to read them, and they may be
+	    readable to applications on your computer when you mount your device
+	    as a storage medium. 
+	</string>
 </resources>

@@ -201,22 +201,18 @@ public abstract class ZephyrgramSetActivity<T extends ZephyrgramSet> extends Act
         this.currentTime = new Date();
         
         ZephyrServiceBridge.getBinder(this, new BinderCallback() {
-            public void run(ZephyrBinder binder, final Runnable onComplete) {
+            public void run(ZephyrBinder binder) {
                 getItems(binder, new ZephyrCallback<T[]>() {
                     public void run(final T[] itemArray) {
                         updateItems(itemArray);
-                        
-                        onComplete.run();
                     }
 
-                    public void onError(Throwable e) {
+                    public void onError(Exception e) {
                         Log.e("ZephyrgramSetActivity",
                               "got error callback in ZephyrgramSetActivity#update",
                               e);
                         
                         showError();
-                        
-                        onComplete.run();
                     }
                 });
             }
@@ -250,8 +246,8 @@ public abstract class ZephyrgramSetActivity<T extends ZephyrgramSet> extends Act
     
     protected void markRead(final IQuery iQuery) {
         ZephyrServiceBridge.getBinder(this, new BinderCallback() {
-            public void run(ZephyrBinder binder, Runnable onComplete) {
-                binder.markRead(iQuery, new ZephyrStatusCallback() {
+            public void run(ZephyrBinder binder) {
+                binder.markRead(ZephyrgramSetActivity.this, iQuery, new ZephyrStatusCallback() {
                     public void onSuccess() {
                         update();
                     }
@@ -260,11 +256,10 @@ public abstract class ZephyrgramSetActivity<T extends ZephyrgramSet> extends Act
                         showFailToast();
                     }
                     
-                    public void onError(Throwable e) {
+                    public void onError(Exception e) {
                         showFailToast();
                     }
                 });
-                onComplete.run();
             }
         });
     }

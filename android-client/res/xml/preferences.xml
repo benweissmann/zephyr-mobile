@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
+	<EditTextPreference
+	    android:key="@string/pref_zserv_server"
+	    android:summary="Where to run the zserv backend"
+	    android:title="Dialup Server" />
+	
+	<CheckBoxPreference 
+	    android:key="@string/pref_remember_me"
+	    android:summary="Whether to save your kerberos username and password to disk"
+	    android:title="Remember Me" />
+	
+	<EditTextPreference
+	    android:key="@string/pref_kerberos_username"
+	    android:summary="Your Kerberos Username"
+	    android:title="Username"
+	    android:dependency="@string/pref_remember_me"/>
+	
+	<EditTextPreference
+	    android:key="@string/pref_kerberos_password"
+	    android:summary="Your Kerberos Password"
+	    android:title="Password"
+	    android:dependency="@string/pref_remember_me"
+	    android:inputType="textPassword"/>
+
+</PreferenceScreen>

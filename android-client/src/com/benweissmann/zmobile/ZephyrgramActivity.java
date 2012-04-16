@@ -149,27 +149,23 @@ public class ZephyrgramActivity extends Activity {
         LoadFlipper.flipToLoader(this);
 
         ZephyrServiceBridge.getBinder(this, new BinderCallback() {
-            public void run(ZephyrBinder binder, final Runnable onComplete) {
-                binder.fetchZephyrgrams(ZephyrgramActivity.this.query,
+            public void run(ZephyrBinder binder) {
+                binder.fetchZephyrgrams(ZephyrgramActivity.this, ZephyrgramActivity.this.query,
                         new ZephyrCallback<ZephyrgramResultSet>() {
                             public void run(final ZephyrgramResultSet result) {
                                 ZephyrgramActivity.this.startResultSet = result;
                                 ZephyrgramActivity.this.endResultSet = result;
 
                                 ZephyrgramActivity.this.initList(result);
-                                
-                                onComplete.run();
                             }
 
-                            public void onError(Throwable e) {
+                            public void onError(Exception e) {
                                 Log.e("ZephyrgramActivity",
                                         "got error callback in ZephyrgramActivity#getFirstPage",
                                         e);
                                 
                                 fetching = false;
                                 LoadFlipper.flipToError(ZephyrgramActivity.this);
-                                
-                                onComplete.run();
                             }
                         });
             }
@@ -287,23 +283,20 @@ public class ZephyrgramActivity extends Activity {
         });
 
         ZephyrServiceBridge.getBinder(this, new BinderCallback() {
-            public void run(ZephyrBinder binder, final Runnable onComplete) {
-                binder.fetchNextPage(ZephyrgramActivity.this.endResultSet,
+            public void run(ZephyrBinder binder) {
+                binder.fetchNextPage(ZephyrgramActivity.this, ZephyrgramActivity.this.endResultSet,
                         new ZephyrCallback<ZephyrgramResultSet>() {
                             public void run(final ZephyrgramResultSet result) {
                                 ZephyrgramActivity.this.appendAllToEnd(result);
-                                onComplete.run();
                             }
 
-                            public void onError(Throwable e) { 
+                            public void onError(Exception e) { 
                                 Log.e("ZephyrgramActivity",
                                         "got error callback in ZephyrgramActivity#getNextPage",
                                         e);
                                 
                                 showFailToast();
                                 fetching = false;
-                                
-                                onComplete.run();
                             }
                         });
             }
@@ -327,23 +320,20 @@ public class ZephyrgramActivity extends Activity {
         });
 
         ZephyrServiceBridge.getBinder(this, new BinderCallback() {
-            public void run(ZephyrBinder binder, final Runnable onComplete) {
-                binder.fetchPrevPage(ZephyrgramActivity.this.startResultSet,
+            public void run(ZephyrBinder binder) {
+                binder.fetchPrevPage(ZephyrgramActivity.this, ZephyrgramActivity.this.startResultSet,
                         new ZephyrCallback<ZephyrgramResultSet>() {
                             public void run(final ZephyrgramResultSet result) {
                                 ZephyrgramActivity.this.appendAllToStart(result);
-                                onComplete.run();
                             }
 
-                            public void onError(Throwable e) {
+                            public void onError(Exception e) {
                                 Log.e("ZephyrgramActivity",
                                         "got error callback in ZephyrgramActivity#getPrevPage",
                                         e);
                                 
                                 showFailToast();
                                 fetching = false;
-                                
-                                onComplete.run();
                             }
                         });
             }
@@ -418,8 +408,8 @@ public class ZephyrgramActivity extends Activity {
     
     private void markRead(final ZephyrgramResultSet resultSet) {
         ZephyrServiceBridge.getBinder(this, new BinderCallback() {
-            public void run(ZephyrBinder binder, Runnable onComplete) {
-                binder.markRead(resultSet, new ZephyrStatusCallback() {
+            public void run(ZephyrBinder binder) {
+                binder.markRead(ZephyrgramActivity.this, resultSet, new ZephyrStatusCallback() {
                     
                     public void onSuccess() {
                         Log.i("ZephyrgramActivity", "Marked read");
@@ -429,12 +419,10 @@ public class ZephyrgramActivity extends Activity {
                         onMarkReadFail();
                     }
                     
-                    public void onError(Throwable e) {
+                    public void onError(Exception e) {
                         onMarkReadFail();
                     }
                 });
-                
-                onComplete.run();
             }
         });
     }

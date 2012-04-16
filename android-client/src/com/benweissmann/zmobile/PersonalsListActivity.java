@@ -53,7 +53,7 @@ public class PersonalsListActivity extends ZephyrgramSetActivity<ZephyrPersonals
     protected void getItems(ZephyrBinder b,
                             ZephyrCallback<ZephyrPersonals[]> callback) {
         
-        b.fetchPersonals(callback);
+        b.fetchPersonals(this, callback);
     }
 
     @Override

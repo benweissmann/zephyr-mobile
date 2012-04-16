@@ -53,11 +53,12 @@ public class ClassListActivity extends ZephyrgramSetActivity<ZephyrClass> {
     
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+        Intent intent;
         // Handle item selection
         switch (item.getItemId()) {
         case R.id.class_list_menu_compose:
-            Intent intent = new Intent(this, ComposeActivity.class);
-            startActivityForResult(intent, 0);
+            intent = new Intent(this, ComposeActivity.class);
+            startActivity(intent);
             return true;
         case R.id.class_list_menu_feedback:
             ComposeActivity.launchFeedback(this);
@@ -66,7 +67,8 @@ public class ClassListActivity extends ZephyrgramSetActivity<ZephyrClass> {
             this.update();
             return true;
         case R.id.class_list_menu_settings:
-            // TODO: implement this
+            intent = new Intent(this, ZMobilePreferencesActivity.class);
+            startActivity(intent);
             return true;
         default:
             return super.onOptionsItemSelected(item);
@@ -77,7 +79,7 @@ public class ClassListActivity extends ZephyrgramSetActivity<ZephyrClass> {
     protected void getItems(ZephyrBinder b,
                             ZephyrCallback<ZephyrClass[]> callback) {
         
-        b.fetchClasses(callback);
+        b.fetchClasses(this, callback);
     }
 
     @Override
@@ -238,9 +240,8 @@ public class ClassListActivity extends ZephyrgramSetActivity<ZephyrClass> {
     
     private void starClass(final String clsName) {
         ZephyrServiceBridge.getBinder(this, new BinderCallback() {
-            public void run(ZephyrBinder binder, Runnable onComplete) {
-                binder.starClass(clsName, new ZephyrStatusCallback() {
-                    
+            public void run(ZephyrBinder binder) {
+                binder.starClass(ClassListActivity.this, clsName, new ZephyrStatusCallback() {
                     public void onSuccess() {
                         update();
                     }
@@ -249,7 +250,7 @@ public class ClassListActivity extends ZephyrgramSetActivity<ZephyrClass> {
                         showFailToast();
                     }
                     
-                    public void onError(Throwable e) {
+                    public void onError(Exception e) {
                         showFailToast();
                     }
                 });
@@ -259,8 +260,8 @@ public class ClassListActivity extends ZephyrgramSetActivity<ZephyrClass> {
     
     private void unstarClass(final String clsName) {
         ZephyrServiceBridge.getBinder(this, new BinderCallback() {
-            public void run(ZephyrBinder binder, Runnable onComplete) {
-                binder.unstarClass(clsName, new ZephyrStatusCallback() {
+            public void run(ZephyrBinder binder) {
+                binder.unstarClass(ClassListActivity.this, clsName, new ZephyrStatusCallback() {
                     public void onSuccess() {
                         update();
                     }
@@ -269,7 +270,7 @@ public class ClassListActivity extends ZephyrgramSetActivity<ZephyrClass> {
                         showFailToast();
                     }
                     
-                    public void onError(Throwable e) {
+                    public void onError(Exception e) {
                         showFailToast();
                     }
                 });
@@ -279,8 +280,8 @@ public class ClassListActivity extends ZephyrgramSetActivity<ZephyrClass> {
     
     private void hideClass(final String clsName) {
         ZephyrServiceBridge.getBinder(this, new BinderCallback() {
-            public void run(ZephyrBinder binder, Runnable onComplete) {
-                binder.hideClass(clsName, new ZephyrStatusCallback() {
+            public void run(ZephyrBinder binder) {
+                binder.hideClass(ClassListActivity.this, clsName, new ZephyrStatusCallback() {
                     public void onSuccess() {
                         update();
                     }
@@ -289,11 +290,10 @@ public class ClassListActivity extends ZephyrgramSetActivity<ZephyrClass> {
                         showFailToast();
                     }
                     
-                    public void onError(Throwable e) {
+                    public void onError(Exception e) {
                         showFailToast();
                     }
                 });
-                onComplete.run();
             }
         });
     }

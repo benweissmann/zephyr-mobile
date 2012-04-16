@@ -16,7 +16,7 @@
         
         <activity
             android:name=".ClassListActivity"
-            android:label="Class List">
+            android:label="Zephyr">
             <intent-filter
                 android:label="@string/app_name">
                 <action android:name="android.intent.action.MAIN" />
@@ -39,6 +39,10 @@
         <activity
             android:name="ComposeActivity"
             android:label="Compose"></activity>
+        
+        <activity
+            android:name="ZMobilePreferencesActivity"
+            android:label="Settings"></activity>
     </application>
 
 </manifest>

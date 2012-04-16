@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pref_zserv_server">zserv_server</string>
+    <string name="pref_kerberos_username">kerberos_username</string>
+    <string name="pref_kerberos_password">kerberos_password</string>
+    <string name="pref_remember_me">remember_me</string>
+    <string name="pref_zserv_port">zserv_port</string>
+    <string name="pref_zserv_keystore">zserv_keystore</string>
+</resources>

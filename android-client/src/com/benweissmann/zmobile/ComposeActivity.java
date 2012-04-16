@@ -180,11 +180,10 @@ public class ComposeActivity extends TabActivity {
         
         
         ZephyrServiceBridge.getBinder(this, new BinderCallback() {
-            public void run(ZephyrBinder binder, final Runnable onComplete) {
-                binder.send(z, new ZephyrStatusCallback() {
+            public void run(ZephyrBinder binder) {
+                binder.send(ComposeActivity.this, z, new ZephyrStatusCallback() {
                     
                     public void onSuccess() {
-                        onComplete.run();
                         toast.cancel();
                         runOnUiThread(new Runnable() {
                             public void run() {
@@ -198,16 +197,12 @@ public class ComposeActivity extends TabActivity {
                     
                     public void onFailure() {
                         Log.w("ComposeActivity", "got failure");
-                        
-                        onComplete.run();
                         toast.cancel();
                         onSendFailure();
                     }
                     
-                    public void onError(Throwable e) {
+                    public void onError(Exception e) {
                         Log.e("ComposeActivity", "got error", e);
-                        
-                        onComplete.run();
                         toast.cancel();
                         onSendFailure();
                     }

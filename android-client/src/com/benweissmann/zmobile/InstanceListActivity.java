@@ -66,7 +66,7 @@ public class InstanceListActivity extends ZephyrgramSetActivity<ZephyrInstance> 
     protected void getItems(ZephyrBinder b,
                             ZephyrCallback<ZephyrInstance[]> callback) {
         
-        b.fetchInstances(this.className, callback);
+        b.fetchInstances(this, this.className, callback);
     }
 
     @Override
