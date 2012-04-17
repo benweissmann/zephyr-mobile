@@ -7,6 +7,7 @@ DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/zephyr-server/"
 # This should be safe as dtach makes its own socket and will fail if one
 # exists. Dtach's socket has safe permissions regardless of umask.
 INFO="$DATA_DIR/info"
+LOCK="$DATA_DIR/lock"
 
 SHARE_PATH="$THIS_DIR/../data"
 
@@ -29,15 +30,14 @@ fi
 
 
 isrunning() {
-    [[ -e "$INFO" ]] && ! flock -xn $INFO true
-    return $?
+    [[ -e "$LOCK" ]] && ! flock -xn $LOCK true
 }
 
 isrunninghere() {
     if isrunning; then
-        . $INFO
-        kill -0 $PID 2>/dev/null
-        return $?
+        PID=$(<$LOCK)
+        [[ -n $PID ]] && kill -0 $PID 2>/dev/null
+        return
     fi
     return 1
 }
@@ -58,8 +58,10 @@ dokill() {
 stopserver() {
     # Kill the server
     isrunninghere || return 1
+    PID=$(<$LOCK)
     dokill $PID
      
+    [[ -e $LOCK ]] && rm -f $LOCK # make sure that the lock is removed
     [[ -e $INFO ]] && rm -f $INFO # make sure that info is removed
     return 0
 }
@@ -70,7 +72,8 @@ resetserver() {
         pkill -9 -u $UID -f '^zserv '
     }
     rm -rf "$DATA_DIR/certs" 2>/dev/null || true
-    rm -f "$DATA_DIR/info" 2>/dev/null || true
+    rm -f "$LOCK" 2>/dev/null || true
+    rm -f "$INFO" 2>/dev/null || true
 }
 
 cleanup_certs() {
@@ -116,7 +119,7 @@ runserver() {
 
     # Wait for the file to exist and be readable.
     TIME=5
-    while [[ ! -r $INFO ]]; do
+    while [[ ! -r $LOCK ]]; do
         if [[ ! $TIME -gt 0 ]]; then
             return 1
         fi
@@ -125,8 +128,7 @@ runserver() {
     done
 
     # Wait for the exclusive lock to be dropped.
-    flock -s $INFO true
-    return 0
+    flock -w 10 -s $LOCK -c true
 }
 
 info() {
