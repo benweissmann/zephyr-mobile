@@ -315,6 +315,8 @@ class Messenger(Thread):
         if user:
             self.store_znotice(znotice)
 
+	return True
+
     @exported
     def filterMessages(self, *messageFilters):
         """
