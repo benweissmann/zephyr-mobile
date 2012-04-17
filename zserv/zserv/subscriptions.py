@@ -16,9 +16,8 @@ TIMEOUT = 3
 SAVE=False
 
 def parse_sub(s):
-        s = s[:s.find("#")].strip()
-        if s:
-            return tuple(s.split(','))
+    tripplet = s[:s.find("#")].strip().split(",")
+    return tuple(tripplet) if len(tripplet) == 3 else None
 
 def filterFile(fname, func):
     # Python 2.6 compatibility: can't combine with statements.
