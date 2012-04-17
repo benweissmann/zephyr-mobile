@@ -103,7 +103,7 @@ runserver() {
     fi
 
     # Wait for the file to exist and be readable.
-    TIME=5
+    TIME=20
     while [[ ! -r $LOCK ]]; do
         if [[ ! $TIME -gt 0 ]]; then
             return 1
