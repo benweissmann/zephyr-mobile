@@ -1,5 +1,5 @@
 #!/bin/bash
 PYTHON=${PYTHON:-python}
-export PYTHONUSERBASE="/mit/zmobile"
+export PYTHONUSERBASE="${ZMOBILE_PREFIX:-/mit/zmobile}"
 
 exec -a zserv $PYTHON -m zserv.xmlrpc $@
