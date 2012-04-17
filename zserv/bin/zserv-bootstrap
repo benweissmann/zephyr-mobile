@@ -9,7 +9,7 @@ DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/zephyr-server/"
 INFO="$DATA_DIR/info"
 LOCK="$DATA_DIR/lock"
 
-SHARE_PATH="$THIS_DIR/../data"
+#SHARE_PATH="$THIS_DIR/../data"
 
 SERVER_PRIV="$DATA_DIR/certs/server_private.pem" 
 SERVER_PUB="$DATA_DIR/certs/server_public.pem" 
@@ -125,14 +125,14 @@ info() {
     echo "!ZSERV VERSION $VERSION"
     echo "!ZSERV HOST $HOST"
     echo "!ZSERV PORT $PORT"
-    getbks $CERT_PUB
+    getpem $CERT_PUB
     echo "!ZSERV INFO END"
 }
 
 getcert() {
     [[ -e "$1" ]] || die "Public cert not found."
     case $2 in 
-        "BKS") getbks $1 ;;
+        #"BKS") getbks $1 ;;
         "PEM") getpem $1 ;;
         *) echo "!ZSERV GET CERT $2 INVALID" ;;
     esac
@@ -144,20 +144,20 @@ getpem() {
     echo "!ZSERV CERT END"
 }
 
-getbks() {
-    KEYSTORE="$1.bks"
-
-    if [[ ! -e "$KEYSTORE" ]]; then
-        yes | keytool -importcert -trustcacerts -keystore $KEYSTORE \
-            -storetype bks -storepass "<BLANK>" -file <(openssl x509 -in $1) \
-            -provider org.bouncycastle.jce.provider.BouncyCastleProvider \
-            -providerpath $SHARE_PATH/bcprov/bcprov.jar >/dev/null 2>&1
-
-    fi
-    echo "!ZSERV CERT BEGIN"
-    base64 "$KEYSTORE"
-    echo "!ZSERV CERT END"
-}
+#getbks() {
+#    KEYSTORE="$1.bks"
+#
+#    if [[ ! -e "$KEYSTORE" ]]; then
+#        yes | keytool -importcert -trustcacerts -keystore $KEYSTORE \
+#            -storetype bks -storepass "<BLANK>" -file <(openssl x509 -in $1) \
+#            -provider org.bouncycastle.jce.provider.BouncyCastleProvider \
+#            -providerpath $SHARE_PATH/bcprov/bcprov.jar >/dev/null 2>&1
+#
+#    fi
+#    echo "!ZSERV CERT BEGIN"
+#    base64 "$KEYSTORE"
+#    echo "!ZSERV CERT END"
+#}
 
 
 get() {
