@@ -3,8 +3,8 @@ package com.benweissmann.zmobile;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.benweissmann.zmobile.auth.AuthHelper;
 import com.benweissmann.zmobile.components.ListHeader;
-import com.benweissmann.zmobile.service.ZephyrService;
 import com.benweissmann.zmobile.service.ZephyrService.ZephyrBinder;
 import com.benweissmann.zmobile.service.callbacks.ZephyrCallback;
 import com.benweissmann.zmobile.service.objects.Query;
@@ -76,7 +76,7 @@ public class PersonalsListActivity extends ZephyrgramSetActivity<ZephyrPersonals
         super.refreshHeaderViews(listView, items);
         
         for(int i = 0; i < items.size(); i++) {
-            if(items.get(i).getName().equalsIgnoreCase(ZephyrService.USER_NAME)) {
+            if(items.get(i).getName().equalsIgnoreCase(AuthHelper.getUsername())) {
                 items.remove(i);
                 return;
             }

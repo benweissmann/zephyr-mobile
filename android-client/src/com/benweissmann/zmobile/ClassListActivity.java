@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.benweissmann.zmobile.components.LoadFlipper;
 import com.benweissmann.zmobile.listadapters.ZephyrClassListAdapter;
 import com.benweissmann.zmobile.listadapters.ZephyrgramSetListAdapter;
 import com.benweissmann.zmobile.service.ZephyrService.ZephyrBinder;
@@ -15,6 +16,10 @@ import com.benweissmann.zmobile.service.callbacks.ZephyrStatusCallback;
 import com.benweissmann.zmobile.service.objects.Query;
 import com.benweissmann.zmobile.service.objects.ZephyrClass;
 import com.benweissmann.zmobile.service.objects.Zephyrgram;
+import com.benweissmann.zmobile.setup.SetupHelper;
+import com.benweissmann.zmobile.setup.ZServ;
+import com.benweissmann.zmobile.setup.ZServCallback;
+import com.benweissmann.zmobile.setup.ZServException;
 
 import android.content.Context;
 import android.content.Intent;
@@ -29,6 +34,7 @@ import android.view.View;
 import android.widget.AdapterView.AdapterContextMenuInfo;
 import android.widget.TextView;
 import android.widget.ListView;
+import android.widget.ViewFlipper;
 
 public class ClassListActivity extends ZephyrgramSetActivity<ZephyrClass> {
     private View personalsListItem;
@@ -70,11 +76,54 @@ public class ClassListActivity extends ZephyrgramSetActivity<ZephyrClass> {
             intent = new Intent(this, ZMobilePreferencesActivity.class);
             startActivity(intent);
             return true;
+        case R.id.class_list_menu_clear_hidden:
+            this.clearHidden();
+            return true;
+        case R.id.class_list_menu_reset:
+            this.resetBackend();
+            return true;
         default:
             return super.onOptionsItemSelected(item);
         }
     }
     
+    private void resetBackend() {
+        LoadFlipper.flipToLoader(this);
+        SetupHelper.promptForZServ(this, new ZServCallback() {
+            public void run(ZServ zServ) {
+                update();
+            }
+            
+            public void onError(ZServException e) {
+                LoadFlipper.flipToContent(ClassListActivity.this);
+                showFailToast(); 
+            }
+        }, true);
+    }
+
+    private void clearHidden() {
+        LoadFlipper.flipToLoader(this);
+        ZephyrServiceBridge.getBinder(this, new BinderCallback() {
+            public void run(ZephyrBinder binder) {
+                binder.clearHiddenClasses(ClassListActivity.this, new ZephyrStatusCallback() {
+                    public void onSuccess() {
+                        update();
+                    }
+                    
+                    public void onFailure() {
+                        showFailToast();
+                        LoadFlipper.flipToContent(ClassListActivity.this);
+                    }
+                    
+                    public void onError(Exception e) {
+                        showFailToast();
+                        LoadFlipper.flipToContent(ClassListActivity.this);
+                    }
+                });
+            }
+        });
+    }
+
     @Override
     protected void getItems(ZephyrBinder b,
                             ZephyrCallback<ZephyrClass[]> callback) {
@@ -133,20 +182,25 @@ public class ClassListActivity extends ZephyrgramSetActivity<ZephyrClass> {
     protected void refreshHeaderViews(ListView listView, ArrayList<ZephyrClass> items) {
         super.refreshHeaderViews(listView, items);
         
-        int unreadCount = 0;
-        
-        for(int i = 0; i < items.size(); i++) {
+        int personalUnreadCount = 0;
+        int i = 0;
+        while(i < items.size()) {
             if(items.get(i).isPersonals()) {
-                unreadCount = items.get(i).getUnreadCount();
+                personalUnreadCount = items.get(i).getUnreadCount();
                 items.remove(i);
-                break;
+            }
+            else if(items.get(i).isHidden()) {
+                items.remove(i);
+            }
+            else {
+                i++;
             }
         }
         
-        if(unreadCount > 0) {
+        if(personalUnreadCount > 0) {
             this.personalsListItem.findViewById(R.id.item_unread_count_wrapper).setVisibility(View.VISIBLE);
             TextView unreadCountView = (TextView) this.personalsListItem.findViewById(R.id.item_unread_count);
-            unreadCountView.setText(Integer.toString(unreadCount));
+            unreadCountView.setText(Integer.toString(personalUnreadCount));
         }
         else {
             this.personalsListItem.findViewById(R.id.item_unread_count_wrapper).setVisibility(View.INVISIBLE);

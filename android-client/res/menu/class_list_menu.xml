@@ -6,11 +6,17 @@
     <item android:id="@+id/class_list_menu_refresh"
         android:title="@string/refresh_label"
         android:icon="@drawable/ic_menu_refresh"></item>
-    <item android:id="@+id/class_list_menu_settings"
-        android:title="@string/settings_label"
-        android:icon="@drawable/ic_menu_settings"></item>
     <item android:id="@+id/class_list_menu_feedback"
         android:title="@string/feedback_label"
         android:icon="@drawable/ic_menu_feedback"></item>
+    <item android:id="@+id/class_list_menu_settings"
+        android:title="@string/settings_label"
+        android:icon="@drawable/ic_menu_settings"></item>
+    <item android:id="@+id/class_list_menu_clear_hidden"
+        android:title="@string/clear_hidden_label"
+        android:icon="@drawable/ic_menu_unhide"></item>
+    <item android:id="@+id/class_list_menu_reset"
+        android:title="@string/reset_label"
+        android:icon="@drawable/ic_menu_reset"></item>
 
 </menu>

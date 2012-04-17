@@ -6,4 +6,5 @@
     <string name="pref_remember_me">remember_me</string>
     <string name="pref_zserv_port">zserv_port</string>
     <string name="pref_zserv_keystore">zserv_keystore</string>
+    <string name="pref_zserv_token">zserv_token</string>
 </resources>

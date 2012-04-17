@@ -1,7 +1,5 @@
 package com.benweissmann.zmobile.service;
 
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -20,7 +18,6 @@ import com.benweissmann.zmobile.service.objects.Zephyrgram;
 import com.benweissmann.zmobile.util.TextWrapper;
 
 import de.timroes.axmlrpc.XMLRPCCallback;
-import de.timroes.axmlrpc.XMLRPCClient;
 import de.timroes.axmlrpc.XMLRPCException;
 import de.timroes.axmlrpc.XMLRPCServerException;
 import android.app.Activity;
@@ -31,11 +28,8 @@ import android.os.IBinder;
 import android.util.Log;
 
 public class ZephyrService extends Service {
-    // When in the emulator, 10.0.2.2 is the host machine
-    public static final String XML_RPC_SERVER_URL = "https://linerva.mit.edu:49990";
     public static final int ZEPHYRGRAMS_PER_PAGE = 15;
     
-    public static final String USER_NAME = "bsw";
     public static final String HOME_DOMAIN = "ATHENA.MIT.EDU";
     
     private static boolean isRunning = false; 
@@ -104,9 +98,11 @@ public class ZephyrService extends Service {
                             int unreadCount = (Integer) classObj.get("unread");
                             int totalCount = (Integer) classObj.get("total");
                             boolean starred = (Boolean) classObj.get("starred");
+                            boolean hidden = (Boolean) classObj.get("hidden");
                             
                             classes[i] = new ZephyrClass(name, unreadCount,
-                                                         totalCount, starred);
+                                                         totalCount, starred,
+                                                         hidden);
                         }
                         
                         callback.run(classes);
@@ -534,6 +530,36 @@ public class ZephyrService extends Service {
                                    "preferences.hideClass", cls);
         }
         
+        public void clearHiddenClasses(Activity activity,
+                                       final ZephyrStatusCallback callback) {
+            XMLRPCCallback hideCallback = new XMLRPCCallback() {
+                public void onResponse(long id, Object result) {
+                    boolean response = (Boolean) result;
+                    if(response) {
+                        callback.onSuccess();
+                    }
+                    else {
+                        callback.onFailure();
+                    }
+                }
+                
+                public void onError(long id, XMLRPCException error) {
+                    Log.e("ZephyrBinder#setHiddenClasses", "xmlrpc exception",
+                          error);
+                    callback.onError(error);
+                }
+                
+                public void onServerError(long id, XMLRPCServerException error) {
+                    Log.e("ZephyrBinder#setHiddenClasses",
+                          "xmlrpc server exception", error);
+                    callback.onError(error);
+                }
+            };
+            
+            xmlRpcClient.callAsync(activity, hideCallback,
+                                   "preferences.setHiddenClasses", new Object[]{new String[]{}});
+        }
+        
         public void markRead(Activity activity, ZephyrgramResultSet resultSet,
                              final ZephyrStatusCallback callback) {
             
@@ -583,21 +609,38 @@ public class ZephyrService extends Service {
             xmlRpcClient.callAsync(activity, markCallback, "messenger.markFilterRead",
                                    filterId, offset, limit);
         }
+        
+        public void ping(Activity activity, final ZephyrStatusCallback callback) {
+            XMLRPCCallback pingCallback = new XMLRPCCallback() {
+                public void onServerError(long id, XMLRPCServerException error) {
+                    Log.e("ZephyrBinder#ping", "got onServerError", error);
+                    callback.onError(error);
+                }
+                
+                public void onResponse(long id, Object result) {
+                    boolean response = (Boolean) result;
+                    if(response) {
+                        callback.onSuccess();
+                    }
+                    else {
+                        callback.onFailure();
+                    }
+                }
+                
+                public void onError(long id, XMLRPCException error) {
+                    Log.e("ZephyrBinder#ping", "got onServerError", error);
+                    callback.onError(error);
+                }
+            };
+            
+            xmlRpcClient.callAsync(activity, pingCallback, "ping");
+        }
     }
     
     @Override
     public void onCreate() {
         ZephyrService.isRunning = true;
-        try {
-            XMLRPCClient client = new XMLRPCClient(new URL(XML_RPC_SERVER_URL),
-                                                   XMLRPCClient.FLAGS_NIL |
-                                                   XMLRPCClient.FLAGS_SSL_IGNORE_INVALID_CERT |
-                                                   XMLRPCClient.FLAGS_SSL_IGNORE_INVALID_HOST);
-            this.xmlRpcClient = new XMLRPCHelper(client);
-        }
-        catch (MalformedURLException e) {
-            Log.e("ZephyrService", "Failed to create URL for XML RPC server", e);
-        }
+        this.xmlRpcClient = new XMLRPCHelper();
     }
     
     @Override

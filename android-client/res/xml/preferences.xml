@@ -3,7 +3,8 @@
 	<EditTextPreference
 	    android:key="@string/pref_zserv_server"
 	    android:summary="Where to run the zserv backend"
-	    android:title="Dialup Server" />
+	    android:title="Dialup Server"
+	    android:defaultValue="linerva.mit.edu" />
 	
 	<CheckBoxPreference 
 	    android:key="@string/pref_remember_me"

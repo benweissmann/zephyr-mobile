@@ -2,7 +2,7 @@ package com.benweissmann.zmobile.service.objects;
 
 import java.util.Date;
 
-import com.benweissmann.zmobile.service.ZephyrService;
+import com.benweissmann.zmobile.auth.AuthHelper;
 import com.benweissmann.zmobile.util.DomainStripper;
 
 //TODO: toString, equals, hashCode
@@ -48,11 +48,11 @@ public final class Zephyrgram {
     }
     
     public boolean isToMe() {
-        return (this.getUser() != null) && this.getUser().equals(ZephyrService.USER_NAME);
+        return (this.getUser() != null) && this.getUser().equals(AuthHelper.getUsername());
     }
     
     public boolean isFromMe() {
-        return this.getSender().equals(ZephyrService.USER_NAME);
+        return this.getSender().equals(AuthHelper.getUsername());
     }
     
     public String getCls() {

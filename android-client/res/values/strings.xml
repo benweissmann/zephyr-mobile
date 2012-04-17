@@ -57,10 +57,10 @@
 	    If you do not choose \"Remember Me,\" you will
 	    have to re-enter your password every 24 hours.
 	    If you do choose \"Remember Me,\" your username and password will be stored
-	    on your device\'s internal storage.
-	    They will be protected from other applications, but applications running
-	    as root on a rooted phone may be able to read them, and they may be
-	    readable to applications on your computer when you mount your device
-	    as a storage medium. 
+	    on your device\'s internal storage, read-protected from other applications.
 	</string>
+	<string name="dialup_label">Server:</string>
+	<string name="zserv_prompt_title">Enter Server Information</string>
+	<string name="reset_label">Reset Backend</string>
+	<string name="clear_hidden_label">Unhide Hidden Classes</string>
 </resources>
