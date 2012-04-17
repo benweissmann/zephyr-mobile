@@ -315,6 +315,8 @@ class Messenger(Thread):
         if user:
             self.store_znotice(znotice)
 
+	return True
+
     @exported
     def filterMessages(self, *messageFilters):
         """
@@ -472,13 +474,14 @@ class Messenger(Thread):
         starred_classes = settings.getVariable("starred-classes")
         hidden_classes = settings.getVariable("hidden-classes")
 
-        def set_starred(item):
+        def process(item):
             item["starred"] = item["cls"] in starred_classes
+            item["hidden"] = item["cls"] in hidden_classes
             return item
 
-
-        starred = [set_starred(c) for c in classes if c["cls"] not in hidden_classes]
-        return sorted(starred, key=lambda item: not item["starred"])
+        classes = [process(c) for c in classes]
+        classes.sort(key=lambda item: not item["starred"])
+        return classes
 
     @exported
     @sync

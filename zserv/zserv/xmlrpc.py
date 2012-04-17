@@ -2,9 +2,10 @@ from SimpleXMLRPCServer import SimpleXMLRPCServer
 from subscriptions import SubscriptionManager
 from messenger import Messenger
 from time import time
-from common import exported, assertCompatable, assertAuthenticated, authenticate, runserver
+from common import exported, assertCompatable, assertAuthenticated, runserver
+from auth import authenticate
 import preferences
-import os, ssl
+import os, ssl, socket
 from . import VERSION
 from settings import DATA_DIR
 from exceptions import ServerKilled
@@ -77,7 +78,17 @@ class ZephyrXMLRPCServer(SimpleXMLRPCServer, object):
             raise ServerKilled()
 
     def getInfo(self):
-        host, port = self.socket.getsockname()
+        addr, port = self.socket.getsockname()
+        host = socket.getfqdn()
+        # Hostname did not resolve:
+        if host == "localhost.localdomain" and addr != "127.0.0.1":
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            try:
+                s.connect(("mit.edu", 80))
+                host = s.getsockname()[0]
+            finally:
+                s.close()
+
         return {
             "HOST": host,
             "PORT": port,

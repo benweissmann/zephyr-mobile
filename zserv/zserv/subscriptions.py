@@ -16,16 +16,9 @@ TIMEOUT = 3
 SAVE=False
 
 def parse_sub(s):
-        s = s[:s.find("#")].strip()
-        if s:
-            return tuple(s.split(','))
-
-def filterFile(fname, func):
-    # Python 2.6 compatibility: can't combine with statements.
-    with open(fname) as fi:
-        with open(fname, "r+") as fo:
-            fo.writelines(l for l in fi.xreadlines() if func(l))
-            fo.truncate()
+    if not s or s[0] == "!": return None # FIXME: Handle unsubs.
+    tripplet = s[:s.find("#")].split(",")
+    return tuple(tripplet) if len(tripplet) == 3 else None
 
 class SubscriptionManager(object):
     DEFAULT_SUBS = (
@@ -40,6 +33,10 @@ class SubscriptionManager(object):
         self.zsubfile = zsubfile
 
         self.load_or_create_zsubs()
+
+    def save(self):
+        with open(self.zsubfile, "w", 0600) as f:
+            f.writelines(",".join(sub) + "\n" for sub in self.subscriptions)
 
     def load_or_create_zsubs(self):
         if not os.path.isfile(self.zsubfile):
@@ -78,8 +75,7 @@ class SubscriptionManager(object):
         self.clear()
         self.subscriptions.update(subscriptions)
         if save:
-            with open(self.zsubfile, 'w') as f:
-                f.writelines(",".join(sub) + "\n" for sub in self.subscriptions)
+            self.save()
         return True
 
 
@@ -103,7 +99,7 @@ class SubscriptionManager(object):
             return False
         self._rem_submap(subscription)
         if save:
-            filterFile(self.zsubfile, lambda l: parse_sub(l) != subscription)
+            self.save()
         return True
 
     @exported
@@ -116,7 +112,7 @@ class SubscriptionManager(object):
         self.subscriptions.add(subscription)
         self._add_submap(subscription)
         if save:
-            with open(self.zsubfile, 'a') as f:
+            with open(self.zsubfile, "a", 0600) as f:
                 f.write(",".join(subscription) + "\n")
 
     @exported
@@ -129,7 +125,7 @@ class SubscriptionManager(object):
         for sub in subscriptions:
                 self._rem_submap(sub)
         if save:
-            filterFile(self.zsubfile, lambda l: parse_sub(l) not in subscriptions)
+            self.save()
         return len(subscriptions)
 
     @exported
