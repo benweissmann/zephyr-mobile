@@ -1,5 +1,6 @@
 PYTHON=${PYTHON:-python}
 export PYTHONUSERBASE=${ZMOBILE_PREFIX:-/mit/zmobile}
+export PATH=/mit/zmobile/bin:$PATH
 
 cd "$(dirname ${BASH_SOURCE[0]})"
 
