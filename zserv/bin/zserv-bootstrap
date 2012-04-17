@@ -185,7 +185,12 @@ while read line; do
     set $line
     case "$1" in
         "START")
-            runserver && echo "!ZSERV START SUCCESS" || echo "!ZSERV START FAILURE"
+            # For testing
+            if [[ -e $HOME/.zserv_fail_start ]]; then
+                echo "!ZSERV START FAILURE"
+            else
+                runserver && echo "!ZSERV START SUCCESS" || echo "!ZSERV START FAILURE"
+            fi
             ;;
         "INFO")
             info
