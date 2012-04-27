@@ -34,7 +34,6 @@ import android.view.View;
 import android.widget.AdapterView.AdapterContextMenuInfo;
 import android.widget.TextView;
 import android.widget.ListView;
-import android.widget.ViewFlipper;
 
 public class ClassListActivity extends ZephyrgramSetActivity<ZephyrClass> {
     private View personalsListItem;

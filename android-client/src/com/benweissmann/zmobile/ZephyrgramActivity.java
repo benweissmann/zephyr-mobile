@@ -19,6 +19,7 @@ import com.benweissmann.zmobile.service.objects.Zephyrgram;
 import com.benweissmann.zmobile.service.objects.ZephyrgramResultSet;
 import com.benweissmann.zmobile.util.DomainStripper;
 import com.benweissmann.zmobile.util.QueryBuilder;
+import com.benweissmann.zmobile.util.URIs;
 
 import android.app.Activity;
 import android.content.Context;
@@ -549,6 +550,10 @@ public class ZephyrgramActivity extends Activity {
             else {
                 inflater.inflate(R.menu.zephyrgram_list_context_menu, menu);   
             }
+            
+            for(String uri : URIs.extractUrls(z.getBody())) {
+                menu.add("Visit " + uri).setIntent(URIs.intentFor(uri));
+            }
         }
     }
     
@@ -574,6 +579,9 @@ public class ZephyrgramActivity extends Activity {
             this.goToZephyrgrams(QueryBuilder.personalQuery(z.getRawSender()));
             return true;
         default:
+            if(item.getIntent() != null) {
+                startActivity(item.getIntent());
+            }
             return super.onContextItemSelected(item);
         }
     }

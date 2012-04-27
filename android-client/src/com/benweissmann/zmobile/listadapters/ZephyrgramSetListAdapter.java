@@ -44,7 +44,9 @@ public class ZephyrgramSetListAdapter<T extends ZephyrgramSet> extends ArrayAdap
 
         if(unreadCount > 0) {
             TextView unreadCountView = (TextView) v.findViewById(R.id.item_unread_count);
+            LinearLayout unreadCountWrapper = (LinearLayout) v.findViewById(R.id.item_unread_count_wrapper);
             unreadCountView.setText(String.valueOf(unreadCount));
+            unreadCountWrapper.setVisibility(View.VISIBLE);
         }
         else {
             LinearLayout unreadCountWrapper = (LinearLayout) v.findViewById(R.id.item_unread_count_wrapper);
