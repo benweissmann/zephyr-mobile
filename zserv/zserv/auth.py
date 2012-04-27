@@ -1,10 +1,13 @@
 from subprocess import call, Popen, PIPE
 import os
 from exceptions import AuthenticationRequired
-from settings import AUTH_TIMEOUT
+from settings import AUTH_TIMEOUT, DATA_DIR, HOME
 from time import time, sleep
 from uuid import uuid4 as uuid
 from threading import Thread, Event
+import logging
+
+PATHS = (DATA_DIR, HOME)
 
 TOKENS = {}
 RENEW_TIMEOUT = 3600
@@ -50,7 +53,8 @@ def renewTickets():
 def refreshAFS():
     # If i am not on afs, don't fail.
     try:
-        call(["aklog"])
+        ret = call(["aklog"] + PATHS, stdout=open(os.devnull, "w", stderr=open(os.devnull, "w")))
+        if ret: logging.error("aklog failed: reason %d" % ret)
     except IOError:
         pass
 

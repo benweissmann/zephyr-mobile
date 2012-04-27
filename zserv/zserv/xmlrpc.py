@@ -59,8 +59,9 @@ class ZephyrXMLRPCServer(SimpleXMLRPCServer, object):
                 except IndexError:
                     raise TypeError("Minimum version unspecified.")
 
+            #TODO: Get rid of username argument
             if method == "authenticate":
-                return authenticate(*params)
+                return authenticate(self.username, params[1])
             else:
                 try:
                     assertAuthenticated(params.pop(0))

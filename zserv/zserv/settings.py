@@ -6,12 +6,13 @@ except:
     import test_zephyr as zephyr
 
 DATA_DIR = os.path.join(os.environ.get("XDG_DATA_HOME", os.path.expandvars("$HOME/.local/share")), "zephyr-server")
+HOME = os.environ.get("HOME")
 
-CONFIG_FILE = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expandvars("$HOME/.config")), "zephyr-server.ini")
 ZEPHYR_DB = os.path.join(DATA_DIR, "zephyrs.db")
 INFO_FILE = os.path.join(DATA_DIR, "info")
 LOCK_FILE = os.path.join(DATA_DIR, "lock")
-ZSUBS = os.path.join(os.environ.get("HOME"), ".zephyr.subs")
+ZSUBS = os.path.join(HOME, ".zephyr.subs")
+ZVARS = os.path.join(HOME, ".zephyr.vars")
 AUTH_TIMEOUT = 86400 # Two weeks between authentication
 
 def string_to_set(value):
