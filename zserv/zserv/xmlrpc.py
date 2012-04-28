@@ -7,7 +7,7 @@ from auth import authenticate
 import preferences
 import os, ssl, socket
 from . import VERSION
-from settings import DATA_DIR
+from settings import DATA_DIR, ZEPHYR_DB
 from exceptions import ServerKilled
 
 DEFAULT_PORT = 0
@@ -30,6 +30,7 @@ class ZephyrXMLRPCServer(SimpleXMLRPCServer, object):
                  host=DEFAULT_HOST,
                  port=DEFAULT_PORT,
                  ssl=False,
+                 db=ZEPHYR_DB,
                  keyfile=DEFAULT_SERVER_KEY,
                  certfile=DEFAULT_SERVER_CERT):
         self.use_ssl = ssl
@@ -40,7 +41,7 @@ class ZephyrXMLRPCServer(SimpleXMLRPCServer, object):
         self.username = zephyr.sender()
         self.preferences = exported(preferences.Preferences())
         self.subscriptions = exported(SubscriptionManager(self.username))
-        self.messenger = exported(Messenger(self.username))
+        self.messenger = exported(Messenger(self.username, db_path=db))
 
     def server_bind(self):
         if self.use_ssl:
@@ -155,6 +156,11 @@ def parse_args():
                         action="store",
                         type=int,
                         default=DEFAULT_PORT)
+
+    parser.add_argument('-d', '--database',
+                        dest='db',
+                        action="store",
+                        default=ZEPHYR_DB)
 
     return vars(parser.parse_args())
 
