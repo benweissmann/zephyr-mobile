@@ -32,8 +32,8 @@ def runserver(server):
     import fcntl, os, signal
 
     # Call finally
-    signal.signal(signal.SIGHUP, exit)
-    signal.signal(signal.SIGTERM, exit)
+    signal.signal(signal.SIGHUP, lambda *args: exit(0))
+    signal.signal(signal.SIGTERM, lambda *args: exit(0))
 
     info_contents = {"VERSION": server_version}
     info_contents.update(server.getInfo())
