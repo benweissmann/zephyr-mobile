@@ -3,6 +3,7 @@
 from common import exported
 import settings
 import os
+from time import sleep
 
 try:
     import zephyr
@@ -26,8 +27,11 @@ class SubscriptionManager(object):
         ('message', '*', '%me%')
     )
     def __init__(self, username, zsubfile=settings.ZSUBS):
-        self.subscriptions = zephyr.Subscriptions()
-        self.submap = {}
+        try:
+            self.subscriptions = zephyr.Subscriptions()
+        except IOError:
+            sleep(1)
+            self.subscriptions = zephyr.Subscriptions()
 
         self.username = username
         self.zsubfile = zsubfile
@@ -48,22 +52,6 @@ class SubscriptionManager(object):
                 if sub is not None:
                     self.add(sub, save=False)
 
-    def _add_submap(self, sub):
-        """Add a subscription from the subscription matching map."""
-        self.submap.setdefault(sub[0], {}).setdefault(sub[1], set()).add(sub[2])
-
-    def _rem_submap(self, sub):
-        """Remove a subscription from the subscription matching map."""
-        cls, inst, user = sub
-
-        if len(self.submap[cls]) == 1:
-            del self.submap[cls]
-        elif len(self.submap[cls][inst]) == 1:
-            del self.submap[cls][inst]
-        else:
-            del self.submap[cls][inst][user]
-
-
     @exported
     def get(self):
         """Get a list of subscriptions."""
@@ -73,7 +61,14 @@ class SubscriptionManager(object):
     def set(self, subscriptions, save=SAVE):
         """Set the subscriptions."""
         self.clear()
-        self.subscriptions.update(subscriptions)
+
+        # Give it one retry
+        try:
+            self.subscriptions.update(subscriptions)
+        except IOError:
+            sleep(1)
+            self.subscriptions.update(subscriptions)
+
         if save:
             self.save()
         return True
@@ -83,8 +78,13 @@ class SubscriptionManager(object):
     @exported
     def clear(self, save=SAVE):
         """Clear the subscriptions."""
-        self.subscriptions.clear()
-        self.submap.clear()
+        # Give it one retry
+        try:
+            self.subscriptions.clear()
+        except IOError:
+            sleep(1)
+            self.subscriptions.clear()
+
         if save:
             open(self.zsubfile, 'w').close() # Truncate
         return True
@@ -93,11 +93,19 @@ class SubscriptionManager(object):
     def remove(self, subscription, save=SAVE):
         """Remove the given subscription."""
         subscription = tuple(subscription)
+
+        # Give it one retry
         try:
             self.subscriptions.remove(subscription)
         except KeyError:
             return False
-        self._rem_submap(subscription)
+        except IOError:
+            sleep(1)
+            try:
+                self.subscriptions.remove(subscription)
+            except KeyError:
+                return False
+
         if save:
             self.save()
         return True
@@ -109,8 +117,13 @@ class SubscriptionManager(object):
         if subscription in self.subscriptions:
             return False
 
-        self.subscriptions.add(subscription)
-        self._add_submap(subscription)
+        # Give it one retry
+        try:
+            self.subscriptions.add(subscription)
+        except IOError:
+            sleep(1)
+            self.subscriptions.add(subscription)
+
         if save:
             with open(self.zsubfile, "a", 0600) as f:
                 f.write(",".join(subscription) + "\n")
@@ -121,9 +134,14 @@ class SubscriptionManager(object):
         subscriptions = self.intersection(tuple(s) for s in subscriptions)
         if not subscriptions:
             return
-        self.subscriptions.difference_update(subscriptions)
-        for sub in subscriptions:
-                self._rem_submap(sub)
+
+        # Give it one retry
+        try:
+            self.subscriptions.difference_update(subscriptions)
+        except IOError:
+            sleep(1)
+            self.subscriptions.difference_update(subscriptions)
+
         if save:
             self.save()
         return len(subscriptions)
@@ -134,35 +152,18 @@ class SubscriptionManager(object):
         subscriptions = set(tuple(s) for s in subscriptions) - self.subscriptions
         if not subscriptions:
             return 0
-        self.subscriptions.update(subscriptions)
-        for sub in subscriptions:
-            self._add_submap(sub)
+
+        # Give it one retry
+        try:
+            self.subscriptions.update(subscriptions)
+        except IOError:
+            sleep(1)
+            self.subscriptions.update(subscriptions)
+
         if save:
             with open(self.zsubfile, 'a') as f:
                 f.writelines(",".join(sub) + "\n" for sub in subscriptions)
         return len(subscriptions)
-
-    @exported
-    def matchTripplet(self, cls=None, instance=None, user=None):
-        """Determine if the given triplet would be matched by a subscription."""
-        cls = cls or "personal"
-        instance = instance or "message"
-        user = user or "*"
-
-
-        if cls in self.submap:
-            mp = self.submap[cls]
-        else:
-            return False
-
-        if instance in mp:
-            mp = mp[instance]
-        elif "*" in mp:
-            mp = mp["*"]
-        else:
-            return False
-
-        return bool("*" in mp or user in mp)
 
     @exported
     def isSubscribed(self, subscription):
