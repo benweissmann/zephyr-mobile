@@ -1,5 +1,5 @@
 from subprocess import call, Popen, PIPE
-import os
+import os, pwd
 from exceptions import AuthenticationRequired
 from settings import AUTH_TIMEOUT, DATA_DIR, HOME
 from time import time, sleep
@@ -14,6 +14,7 @@ RENEW_TIMEOUT = 3600
 TICKET_TIME = "7d"
 
 nop = lambda *_:None
+USER = pwd.getpwuid(os.geteuid()).pw_name # os.getlogin fails on linerva
 
 def checkTickets():
     return call(["klist","-s"], stdout=open(os.devnull, "w"), stderr=open(os.devnull, "w")) == 0
@@ -59,10 +60,15 @@ def refreshAFS():
         pass
 
 def authenticate(username, password):
-    if getTickets(username, password):
-        return makeToken()
-    else:
-        raise AuthenticationRequired("Invalid credentials")
+    import pam
+    # This will fetch tickets twice but...
+    if not pam.authenticate(USER, password, "sshd"):
+        raise AuthenticationRequired("Invalid credentials.")
+
+    if not getTickets(username, password):
+        raise AuthenticationRequired("Unable to get tickets.")
+
+    return makeToken()
 
 class RenewTicketsTimer(Thread):
     def __init__(self, on_auth_expire=nop, time=RENEW_TIMEOUT):

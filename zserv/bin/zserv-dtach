@@ -8,7 +8,7 @@ cp $KRB5CCNAME $NEWKRB5
 KRB5CCNAME=FILE:$NEWKRB5; export KRB5CCNAME
 
 if [ "x$KRBTKFILE" != "x" ]; then
-    NEWKRB4=/tmp/tkt_${USER}_tmux
+    NEWKRB4=/tmp/tkt_${USER}_zserv
     KRBTKFILE=`echo $KRBTKFILE|sed 's/FILE://'`
     cp $KRBTKFILE $NEWKRB4
     KRBTKFILE=$NEWKRB4; export KRBTKFILE

@@ -17,3 +17,7 @@ cd "$(dirname ${BASH_SOURCE[0]})"
     easy_install -U -O1 --user argparse
 )
 
+# A saner pam module that has been updated within the last 10 years
+(
+    easy_install --user http://atlee.ca/software/pam/dist/0.1.3/pam-0.1.3.tar.gz
+)
