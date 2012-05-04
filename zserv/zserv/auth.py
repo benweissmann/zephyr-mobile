@@ -89,4 +89,3 @@ class RenewTicketsTimer(Thread):
     def stop(self):
         self.event.set()
 
-

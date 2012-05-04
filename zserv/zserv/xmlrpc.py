@@ -134,36 +134,51 @@ def parse_args():
                         dest='ssl',
                         default=False,
                         const=True,
-                        action='store_const')
+                        action='store_const',
+                        help="Use ssl."
+                       )
 
     parser.add_argument('-k', '--keyfile',
                         dest='keyfile',
                         action="store",
-                        default=DEFAULT_SERVER_KEY)
+                        default=DEFAULT_SERVER_KEY,
+                        help="The server's private key."
+                       )
 
     parser.add_argument('-c', '--cert',
                         dest='certfile',
                         action="store",
-                        default=DEFAULT_SERVER_CERT)
+                        default=DEFAULT_SERVER_CERT,
+                        help="The server's public key."
+                       )
 
     parser.add_argument('-a', '--address',
                         dest='host',
                         action="store",
-                        default=DEFAULT_HOST)
+                        default=DEFAULT_HOST,
+                        help="Address to listen on."
+                       )
 
     parser.add_argument('-p', '--port',
                         dest='port',
                         action="store",
                         type=int,
-                        default=DEFAULT_PORT)
+                        default=DEFAULT_PORT,
+                        help="Port to listen on."
+                       )
 
-    parser.add_argument('-d', '--database',
-                        dest='db',
-                        action="store",
-                        default=ZEPHYR_DB)
+    parser.add_argument('-f', '--fork',
+                        dest='dofork',
+                        default=False,
+                        const=True,
+                        action="store_const",
+                        help="Daemonize the server."
+                       )
 
     return vars(parser.parse_args())
 
 
 if __name__ == '__main__':
-    runserver(ZephyrXMLRPCServer(**parse_args()))
+    args = parse_args()
+    dofork = args.pop('dofork')
+    runserver(ZephyrXMLRPCServer, args=args, dofork=dofork)

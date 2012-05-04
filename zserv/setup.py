@@ -10,5 +10,5 @@ setup(name='ZServ',
       author_email='steb@mit.edu',
       url='http://zmobile.mit.edu/',
       packages=['zserv'],
-      scripts=["bin/zserv", "bin/zserv-bootstrap", "bin/zserv-dtach"],
+      scripts=["bin/zserv", "bin/zserv-bootstrap", "bin/zserv-newpag"],
      )

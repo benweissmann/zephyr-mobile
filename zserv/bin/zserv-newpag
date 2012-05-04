@@ -14,4 +14,4 @@ if [ "x$KRBTKFILE" != "x" ]; then
     KRBTKFILE=$NEWKRB4; export KRBTKFILE
 fi
 
-nohup zserv $@ > ~/.local/share/server.log 2>&1 &
+exec zserv $@

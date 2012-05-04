@@ -13,7 +13,8 @@ INFO_FILE = os.path.join(DATA_DIR, "info")
 LOCK_FILE = os.path.join(DATA_DIR, "lock")
 ZSUBS = os.path.join(HOME, ".zephyr.subs")
 ZVARS = os.path.join(HOME, ".zephyr.vars")
-AUTH_TIMEOUT = 86400 # Two weeks between authentication
+AUTH_TIMEOUT = 86400 # 1 day between authentications
+LOGFILE = os.path.join(DATA_DIR, "server.log")
 
 def string_to_set(value):
     return set(value.split(','))

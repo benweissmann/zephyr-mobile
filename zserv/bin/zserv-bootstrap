@@ -98,22 +98,9 @@ runserver() {
         fi
         (
             cd $BIN_DIR
-            ./zserv-dtach --ssl --key=$SERVER_PRIV --cert=$SERVER_PUB || die "Failed to start server."
+            ./zserv-newpag --fork --ssl --key=$SERVER_PRIV --cert=$SERVER_PUB || die "Failed to start server."
         )
     fi
-
-    # Wait for the file to exist and be readable.
-    TIME=20
-    while [[ ! -r $LOCK ]]; do
-        if [[ ! $TIME -gt 0 ]]; then
-            return 1
-        fi
-        let TIME--
-        sleep 1
-    done
-
-    # Wait for the exclusive lock to be dropped.
-    flock -w 10 -s $LOCK -c true
 }
 
 info() {
