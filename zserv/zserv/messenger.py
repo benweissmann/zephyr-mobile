@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 # encoding: utf-8
 import logging
-logging.basicConfig(level=logging.DEBUG)
-from common import exported, sync
-import settings
+from server import exported
+import settings, preferences
 import sqlite3
 from itertools import izip
 from functools import wraps
@@ -11,13 +10,18 @@ from threading import Thread, RLock
 from time import time
 from datetime import datetime
 import os
+from . import zephyr
 sqlite3.register_converter("BOOL", lambda v: v != "0")
-try:
-    import zephyr
-except ImportError:
-    import test_zephyr as zephyr
+logger = logging.getLogger(__name__)
 
 __all__ = ("Filter", "Messenger")
+
+def sync(func):
+    @wraps(func)
+    def do(self, *args, **kwargs):
+        with self.lock:
+            return func(self, *args, **kwargs)
+    return do
 
 def transaction(func):
     @wraps(func)
@@ -84,6 +88,8 @@ class Filter(object):
     """
     A filter that is an or of its clauses anded with its parent (recursivly).
     """
+
+    __slots__ = ("fid", "_objs", "_query_list", "_where", "_dnf")
 
     FIELDS = {
         "cls": (ret, "cls=?"),
@@ -231,10 +237,9 @@ class Messenger(Thread):
         while True:
             z = zephyr.receive(block=True)
             if z is None:
-                print "Stopping receiving thread..."
-                return
+                break
             self.store_znotice(z)
-        print "Stopping receiving thread..."
+        logger.info("Stopping receiving thread.")
 
     def quit(self):
         zephyr.interrupt()
@@ -308,7 +313,7 @@ class Messenger(Thread):
             cls=cls,
             instance=instance,
             recipient=user,
-            message="%s\x00%s" % (settings.getVariable("signature"), message))
+            message="%s\x00%s" % (preferences.getVariable("signature"), message))
 
         znotice.send()
 
@@ -471,8 +476,8 @@ class Messenger(Thread):
 
         # XXX: This should be done with plugins and callbacks
 
-        starred_classes = settings.getVariable("starred-classes")
-        hidden_classes = settings.getVariable("hidden-classes")
+        starred_classes = preferences.getVariable("starred-classes")
+        hidden_classes = preferences.getVariable("hidden-classes")
 
         def process(item):
             item["starred"] = item["cls"] in starred_classes

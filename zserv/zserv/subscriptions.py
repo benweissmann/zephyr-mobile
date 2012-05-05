@@ -1,14 +1,10 @@
 #!/usr/bin/env python
 # encoding: utf-8
-from common import exported
+from server import exported
 import settings
 import os
 from time import sleep
-
-try:
-    import zephyr
-except ImportError:
-    import test_zephyr as zephyr
+from . import zephyr
 
 __all__ = ("SubscriptionManager",)
 

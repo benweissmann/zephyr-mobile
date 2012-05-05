@@ -25,3 +25,6 @@ class AuthenticationRequired(BaseZServError):
 
 class ServerKilled(BaseZServError):
     ERRNO = 4
+
+class UpgradeError(BaseZServError):
+    ERRNO = 5

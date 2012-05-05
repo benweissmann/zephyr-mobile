@@ -5,11 +5,11 @@ class testMessenger(unittest.TestCase):
 
     def setUp(self):
         import messenger
-        import settings
+        import preferences
 
-        settings.setVariable("starred-classes", ["help"])
-        settings.setVariable("signature", "")
-        settings.setVariable("hidden-classes", ["message"])
+        preferences.setVariable("starred-classes", ["help"])
+        preferences.setVariable("signature", "")
+        preferences.setVariable("hidden-classes", ["message"])
 
         self.messenger = messenger.Messenger("ME", ":memory:")
 
@@ -249,8 +249,9 @@ class testMessenger(unittest.TestCase):
         self.populateTestMessages()
         self.assertEquals(self.messenger.getClasses(),
                     [
-                        {'cls': u'help', 'starred': True, 'total': 5, 'unread': 5},
-                        {'cls': u'offtopic', 'starred': False, 'total': 1, 'unread': 1},
+                        {'cls': u'help', 'hidden': False, 'starred': True, 'total': 5, 'unread': 5},
+                        {'cls': u'message', 'hidden':True, 'starred': False, 'total': 2, 'unread': 2},
+                        {'cls': u'offtopic', 'hidden':False, 'starred': False, 'total': 1, 'unread': 1},
                     ]
                    )
 
@@ -287,7 +288,6 @@ class testMessenger(unittest.TestCase):
         fid = self.messenger.filterMessages({"sender": "bsw"})
         self.messenger.deleteFilter(fid)
         self.assertTrue(len(self.messenger.get(fid)["messages"]) == 0)
-
 
 if __name__ == '__main__':
     unittest.main()

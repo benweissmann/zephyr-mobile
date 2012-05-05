@@ -6,6 +6,7 @@ from time import time, sleep
 from uuid import uuid4 as uuid
 from threading import Thread, Event
 import logging
+logger = logging.getLogger(__name__)
 
 PATHS = [DATA_DIR, HOME]
 
@@ -55,7 +56,7 @@ def refreshAFS():
     # If i am not on afs, don't fail.
     try:
         ret = call(["aklog"] + PATHS, stdout=open(os.devnull, "w"), stderr=open(os.devnull, "w"))
-        if ret: logging.error("aklog failed: reason %d" % ret)
+        if ret: logger.error("aklog failed: reason %d" % ret)
     except OSError:
         pass
 

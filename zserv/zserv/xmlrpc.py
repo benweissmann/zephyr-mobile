@@ -2,25 +2,20 @@ from SimpleXMLRPCServer import SimpleXMLRPCServer
 from subscriptions import SubscriptionManager
 from messenger import Messenger
 from time import time
-from common import exported, assertCompatable, assertAuthenticated, runserver
+from server import exported, assertCompatable, assertAuthenticated, runserver
 from auth import authenticate
-import preferences
+import preferences, logging
 import os, ssl, socket
-from . import VERSION
-from settings import DATA_DIR, ZEPHYR_DB
+from . import VERSION, zephyr
+import settings
 from exceptions import ServerKilled
+import inspect
 
 DEFAULT_PORT = 0
 DEFAULT_HOST = "0.0.0.0"
 
-DEFAULT_SERVER_CERT = os.path.join(DATA_DIR, "certs/server_public.pem")
-DEFAULT_SERVER_KEY = os.path.join(DATA_DIR, "certs/server_private.pem")
-
-try:
-    import zephyr
-except ImportError:
-    print "Failed to import zephyr, using test zephyr."
-    import test_zephyr as zephyr
+DEFAULT_SERVER_CERT = os.path.join(settings.DATA_DIR, "certs/server_public.pem")
+DEFAULT_SERVER_KEY = os.path.join(settings.DATA_DIR, "certs/server_private.pem")
 
 __all__ = ('ZephyrXMLRPCServer',)
 
@@ -30,7 +25,7 @@ class ZephyrXMLRPCServer(SimpleXMLRPCServer, object):
                  host=DEFAULT_HOST,
                  port=DEFAULT_PORT,
                  ssl=False,
-                 db=ZEPHYR_DB,
+                 db=settings.ZEPHYR_DB,
                  keyfile=DEFAULT_SERVER_KEY,
                  certfile=DEFAULT_SERVER_CERT):
         self.use_ssl = ssl
@@ -75,7 +70,10 @@ class ZephyrXMLRPCServer(SimpleXMLRPCServer, object):
                 if not getattr(obj, "_export", False):
                     raise AttributeError("Method not supported.")
 
-            return obj(*params)
+            try:
+                return obj(*params)
+            except Exception as e:
+                logging.getLogger(getattr(inspect.getmodule(inspect.trace()[-1]), "__name__", __name__)).debug("%s: %s" % (e.__class__.__name__, e.message))
         except KeyboardInterrupt:
             raise ServerKilled()
 
@@ -88,6 +86,8 @@ class ZephyrXMLRPCServer(SimpleXMLRPCServer, object):
             try:
                 s.connect(("mit.edu", 80))
                 host = s.getsockname()[0]
+            except socket.error:
+                pass # Can't resolve mit.edu. meh...
             finally:
                 s.close()
 
@@ -118,10 +118,7 @@ class ZephyrXMLRPCServer(SimpleXMLRPCServer, object):
         self.messenger.start()
         try:
             super(ZephyrXMLRPCServer, self).serve_forever()
-        except KeyboardInterrupt:
-            pass
         finally:
-            print "exiting..."
             self.messenger.quit()
 
 def parse_args():
@@ -175,10 +172,21 @@ def parse_args():
                         help="Daemonize the server."
                        )
 
+    parser.add_argument('-d', '--debug',
+                        dest='debug',
+                        default=False,
+                        const=True,
+                        action="store_const",
+                        help="Log debugging output."
+                       )
+
     return vars(parser.parse_args())
 
 
 if __name__ == '__main__':
     args = parse_args()
     dofork = args.pop('dofork')
+    if args.pop('debug'):
+        settings.LOG_LEVEL = logging.DEBUG
+        logging.getLogger().setLevel(settings.LOG_LEVEL)
     runserver(ZephyrXMLRPCServer, args=args, dofork=dofork)
