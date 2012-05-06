@@ -10,6 +10,7 @@ from . import VERSION, zephyr
 import settings
 from exceptions import ServerKilled
 import inspect
+from time import sleep
 
 logger = logging.getLogger("xmlrpc")
 
@@ -41,7 +42,13 @@ class ZephyrXMLRPCServer(SimpleXMLRPCServer, object):
         self.keyfile = keyfile
         self.certfile = certfile
         super(ZephyrXMLRPCServer, self).__init__((host, port), allow_none=True, requestHandler=ZephyrXMLRPCRequestHandler)
-        zephyr.init()
+
+        try:
+            zephyr.init()
+        except IOError:
+            sleep(1)
+            zephyr.init()
+
         self.username = zephyr.sender()
         self.preferences = exported(preferences.Preferences())
         self.subscriptions = exported(SubscriptionManager(self.username))
@@ -83,6 +90,7 @@ class ZephyrXMLRPCServer(SimpleXMLRPCServer, object):
                 return obj(*params)
             except Exception as e:
                 logging.getLogger(getattr(inspect.getmodule(inspect.trace()[-1]), "__name__", __name__)).debug("%s: %s" % (e.__class__.__name__, e.message))
+                raise e
         except KeyboardInterrupt:
             raise ServerKilled()
 
