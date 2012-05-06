@@ -175,6 +175,14 @@ def fork(event):
                 os._exit(ret)
         else:
             # grandchild.
+            # Close them all
             sys.stdin.close()
+            sys.stdout.close()
+            sys.stderr.close()
+            os.close(0)
+            os.close(1)
+            os.close(2)
+
+            # Open new ones
             sys.stdout = open(settings.LOG_FILE, 'a')
             sys.stderr = open(settings.LOG_FILE, 'a')
