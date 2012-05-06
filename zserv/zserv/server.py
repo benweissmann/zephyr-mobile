@@ -25,9 +25,6 @@ def assertAuthenticated(token):
         raise AuthenticationRequired("Invalid token.")
 
 def runserver(server_class, args, dofork=False):
-
-    os.umask(077) # Default to private files.
-
     server_started = Event() # Fired when the child is ready
 
     # Call finally

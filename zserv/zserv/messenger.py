@@ -46,9 +46,7 @@ def open_or_create_db(path):
                 but the parent directory must.
     """
     if path != ":memory:":
-        directory = os.path.dirname(path)
-        if not os.path.isdir(directory):
-            os.makedirs(directory)
+        # Directories created in __init__
 
         # Create the file wit 0600 permissions. If the user wants to change
         # this, that's there problem.

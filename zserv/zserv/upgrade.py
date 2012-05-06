@@ -11,13 +11,13 @@ def upgrade():
     if os.path.exists(VERSION_FILE):
         try:
             with open(VERSION_FILE, "r") as vfile:
-                old_version = int(vfile.readline())
+                old_version = int(vfile.readline().strip())
         except IOError:
             raise UpgradeError("Couldn't read version file.")
         except ValueError:
             raise UpgradeError("Invalid version file format.")
     else:
-        logger.info("No version file found. Assuming initial install.")
+        logger.info("No version file found. Assuming current version.")
         write_version(new_version)
         return False
 
