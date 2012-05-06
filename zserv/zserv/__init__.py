@@ -9,7 +9,7 @@ __all__ = ("VERSION", "zephyr")
 os.umask(077) # Default to private files.
 
 if not os.path.exists(settings.DATA_DIR):
-    os.path.makedirs(settings.DATA_DIR, 0700)
+    os.makedirs(settings.DATA_DIR, 0700)
 
 if not os.path.isdir(settings.DATA_DIR):
     print "The data directory is not a directory."
