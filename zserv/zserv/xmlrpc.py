@@ -1,4 +1,4 @@
-from SimpleXMLRPCServer import SimpleXMLRPCServer
+from SimpleXMLRPCServer import SimpleXMLRPCServer, SimpleXMLRPCRequestHandler
 from subscriptions import SubscriptionManager
 from messenger import Messenger
 from time import time
@@ -11,6 +11,8 @@ import settings
 from exceptions import ServerKilled
 import inspect
 
+logger = logging.getLogger("xmlrpc")
+
 DEFAULT_PORT = 0
 DEFAULT_HOST = "0.0.0.0"
 
@@ -18,6 +20,13 @@ DEFAULT_SERVER_CERT = os.path.join(settings.DATA_DIR, "certs/server_public.pem")
 DEFAULT_SERVER_KEY = os.path.join(settings.DATA_DIR, "certs/server_private.pem")
 
 __all__ = ('ZephyrXMLRPCServer',)
+
+class ZephyrXMLRPCRequestHandler(SimpleXMLRPCRequestHandler):
+    def log_message(self, format, *args):
+        logger.debug("%s - " + format, self.address_string(), *args)
+
+    def log_error(self, format, args):
+        logger.error("%s - " + format, self.address_string(), *args)
 
 class ZephyrXMLRPCServer(SimpleXMLRPCServer, object):
     TYPE = "XML-RPC"
@@ -31,7 +40,7 @@ class ZephyrXMLRPCServer(SimpleXMLRPCServer, object):
         self.use_ssl = ssl
         self.keyfile = keyfile
         self.certfile = certfile
-        super(ZephyrXMLRPCServer, self).__init__((host, port), allow_none=True)
+        super(ZephyrXMLRPCServer, self).__init__((host, port), allow_none=True, requestHandler=ZephyrXMLRPCRequestHandler)
         zephyr.init()
         self.username = zephyr.sender()
         self.preferences = exported(preferences.Preferences())
@@ -94,8 +103,8 @@ class ZephyrXMLRPCServer(SimpleXMLRPCServer, object):
         return {
             "HOST": host,
             "PORT": port,
-            "SSL": int(bool(self.keyfile)),
-            "CERT_PUB": self.certfile or self.keyfile,
+            "SSL": int(self.use_ssl),
+            "CERT_PUB": self.certfile or self.keyfile or "",
         }
 
     @exported
