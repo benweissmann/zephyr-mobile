@@ -1,3 +1,8 @@
+<
+new employment opportunities.
+ 			</em>
+ 		</p>
++		<p>But if you're a cool, 5'11" passionate, Javascript recruiter located in Boston: <a href="mailto:{% author.email %}">let's talk!</a>.</p>
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry kind="src" path="src"/>
